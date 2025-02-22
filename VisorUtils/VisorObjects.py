@@ -34,11 +34,11 @@ class ROIObject(object):
         self.source.SetRadius(radius)
         
         # mapper
-        mapper = vtk.vtkPolyDataMapper()
-        mapper.SetInputConnection(self.source.GetOutputPort())
+        self.mapper = vtk.vtkPolyDataMapper()
+        self.mapper.SetInputConnection(self.source.GetOutputPort())
         
         self.actor = vtk.vtkActor()
-        self.actor.SetMapper(mapper)
+        self.actor.SetMapper(self.mapper)
         self.Type = 'Sphere'
         self.Center = center
      
@@ -54,7 +54,9 @@ class ImageObject(object):
         self.ReferenceFile = filename
 
         affine = data.affine
+        self.origin = affine[0:3,3]
         affine[0:3,3] = 0
+        print(self.origin)
 
         self.affine = affine
         if(type(target_vs) == int or type(target_vs) == float):
@@ -62,9 +64,10 @@ class ImageObject(object):
         else:
             taffine = np.diag(target_vs)
         dataV = resample_img(data,target_affine=taffine,interpolation='nearest')
-        dataV = dataV.get_data()
+        dataV = dataV.get_fdata()
         
         self.data = dataV
+        self.affine = taffine
         self.name = shortName
         self.minVal = minVal
         self.maxVal = maxVal
@@ -94,10 +97,14 @@ class ImageObject(object):
 
 class TractographyObject(object):
 
-    def __init__(self,filename,colorby='random',max_tracts=1e10):    
-        
-        Tracts = VisorIO.LoadMATTractography(filename, max_tracts=max_tracts)
-                    
+    def __init__(self,filename,colorby='fe_seg',max_tracts=1e10,affine=None,size4centering=None):    
+        if('.mat' in filename):
+            Tracts = VisorIO.LoadMATTractography(filename, max_tracts=max_tracts)
+        elif('.trk' in filename or '.tck' in filename):
+            Tracts = VisorIO.LoadTRKTractography(filename, max_tracts=max_tracts,affine=affine,size4centering=size4centering)
+        elif('.vtk' in filename):
+            Tracts = VisorIO.LoadVTKTractography(filename,affine=affine,size4centering=size4centering)
+                        
         t = time.time()
         
         points = vtk.vtkPoints();
@@ -145,6 +152,7 @@ class TractographyObject(object):
                     points.InsertNextPoint(p2);
                     lines.InsertCellPoint(idx+1);
                     Colors.InsertNextTuple3(v[0]*255,v[1]*255,v[2]*255);
+                    Colors.InsertNextTuple3(v[0]*255,v[1]*255,v[2]*255);
                     idx+=2;
             elif(color_mode == 2):
                 # Color the lines per segment
@@ -160,11 +168,12 @@ class TractographyObject(object):
         data.SetPoints(points);
         data.SetLines(lines);
         data.GetCellData().SetScalars(Colors);
+        self.data = data
         
-        mapper = vtk.vtkPolyDataMapper();
-        mapper.SetInputDataObject(data);
+        self.mapper = vtk.vtkPolyDataMapper();
+        self.mapper.SetInputDataObject(data);
         actor = vtk.vtkActor();
-        actor.SetMapper(mapper);
+        actor.SetMapper(self.mapper);
         
         elapsed = time.time() - t
         print('The creation of the VTK actor took ' + str(elapsed) + 's')
@@ -197,18 +206,34 @@ class TractographyObject(object):
         Colors.SetName("Colors")
 
         vtp.InitTraversal()
-        all_line_ids = vtk.vtkIdList();        
+        all_line_ids = vtk.vtkIdList()        
         while(vtp.GetNextCell(all_line_ids)):
             #print('Line has ' + str(all_line_ids.GetNumberOfIds()) + ' points');
             p1 = points[all_line_ids.GetId(0),:];
             p2 = points[all_line_ids.GetId(all_line_ids.GetNumberOfIds()-1),:];
             v = np.abs(p2-p1);
             v = v/np.linalg.norm(v,2);
-            # print('Iterating ' + str(v[0]) + ' ' + str(v[1]) + str(v[2]))
+             #print('Iterating ' + str(v[0]) + ' ' + str(v[1]) + str(v[2]))
             Colors.InsertNextTuple3(v[0]*255,v[1]*255,v[2]*255);
+            Colors.InsertNextTuple3(v[0]*255,v[1]*255,v[2]*255);
+                    
+        poly.SetScalars(Colors)
         
-        poly.SetScalars(Colors)        
-    
+    def GetPointsAndLines(self):
+        mapper = self.actor.GetMapper()
+        vtp = mapper.GetInputDataObject(0,0).GetLines()
+        points = vtk_to_numpy(mapper.GetInputDataObject(0,0).GetPoints().GetData())
+        vtp.InitTraversal()
+        all_line_ids = vtk.vtkIdList()      
+        Lines = np.zeros((mapper.GetInputDataObject(0,0).GetNumberOfLines(),2))  
+        count = 0
+        while(vtp.GetNextCell(all_line_ids)):
+            #print('Line has ' + str(all_line_ids.GetNumberOfIds()) + ' points');
+            Lines[count,:] = [all_line_ids.GetId(0),all_line_ids.GetId(all_line_ids.GetNumberOfIds()-1)]
+            count += 1
+            
+        return points,Lines
+            
     def ActorDefaultProps(self):
          actor = self.actor
          #actor.GetProperty().SetEdgeVisibility(1);

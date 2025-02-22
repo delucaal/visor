@@ -22,6 +22,7 @@ from PyQt5.QtWidgets import QFileDialog
 from fury import actor,colormap
 
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+from vtk.util.numpy_support import vtk_to_numpy
 
 from VisorUtils.FODActor import visorFODActor
 from VisorUtils.SimpleThreading import MethodInBackground
@@ -47,6 +48,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         
         self.show();
         self.iren.Start()
+        self.setAcceptDrops(True)
         # self.OpenWindow()
         
     def _link_qt_objects(self):
@@ -83,6 +85,9 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.tractColAlphaSlider = self.findChild(QtWidgets.QSlider,'tractColAlphaSlider');
         self.tractThickSlider = self.findChild(QtWidgets.QSlider,'tractThickSlider');
         self.tractColDECButton = self.findChild(QtWidgets.QPushButton,'tractColDECButton')
+        
+        
+        self.roiListWidget = self.findChild(QtWidgets.QListWidget,'ROIsListWidget')
         self.sphereROIButton = self.findChild(QtWidgets.QPushButton,'sphereROIButton')
         
         self.volColormapBox = self.findChild(QtWidgets.QComboBox,'volColormapBox');
@@ -161,14 +166,52 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         
         self.iren.Initialize()
 
+        self.iren.AddObserver("LeftButtonPressEvent",self.leftButtonPressEvent)
+        self.iren.AddObserver("KeyPressEvent",self.keyboardEvent)
+        self._interactor_camera()
+        
+        self._add_sphere_roi(0)
+        self._add_sphere_roi(0)
+        points = vtk.vtkPoints()
+        lines = vtk.vtkCellArray()
+        lines.InsertNextCell(3)
+        points.InsertNextPoint((-15,-15,-15))
+        lines.InsertCellPoint(0)
+        points.InsertNextPoint((0,0,0))
+        lines.InsertCellPoint(1)
+        points.InsertNextPoint((15,15,15))
+        lines.InsertCellPoint(2)
+        data = vtk.vtkPolyData()
+        data.SetPoints(points)
+        data.SetLines(lines)
+        self.test_line_s = data
+        self.test_line_source = vtk.vtkPolyLineSource()
+        self.test_line_source.SetNumberOfPoints(2)
+        self.test_line_source.SetPoints(points)
+        #self.test_line_source.SetInputData(data)
+        #self.test_line_source.SetOutput(data)
+
+        vtkm = vtk.vtkPolyDataMapper()
+        vtkm.SetInputConnection(self.test_line_source.GetOutputPort())#SetInputDataObject(data)
+        vtka = vtk.vtkActor()
+        vtka.SetMapper(vtkm)
+        #self.scene.AddActor(vtka)
+        self.test_line_mapper = vtkm
+                        
+        ObjectsManager.rois_list[-1].source.SetCenter((-5,-5,0))
+                
+    def _interactor_camera(self):
         self.style = vtk.vtkInteractorStyleTrackballCamera()
-        # self.style = vtk.vtkInteractorStyleTrackballActor()
         self.style.SetCurrentRenderer(self.scene)
         self.style.SetInteractor(self.iren)
         self.iren.SetInteractorStyle(self.style)
-        
-        self.style.AddObserver("LeftButtonPressEvent",self.leftButtonPressEvent)
-        
+
+    def _interactor_actor(self):
+        self.style = vtk.vtkInteractorStyleTrackballActor()
+        self.style.SetCurrentRenderer(self.scene)
+        self.style.SetInteractor(self.iren)
+        self.iren.SetInteractorStyle(self.style)
+            
     ## Tract related actions    
     def _track_clicked(self, _item):
         cR = self.tractsListWidget.currentRow();
@@ -196,7 +239,8 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.iren.Render()
 
     def _tract_color_dec(self,_button):
-        cR = self.tractsListWidget.currentRow();
+        print('_tract_color_dec')
+        cR = self.tractsListWidget.currentRow()
         cR = ObjectsManager.tracts_list[cR]
         cR.SetColorDEC()
         cR.actor.Modified()
@@ -226,7 +270,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
             print(Q)
             if(Q == '.mat' or Q == '.MAT'):
                 try:
-                    self.LoadAndDisplayTract(the_dir + '/' + SEL,colorby='random');
+                    self.LoadAndDisplayTract(the_dir + '/' + SEL,colorby='fe_seg');
                 except:
                     print('Skipping ' + SEL + ' due to errors');
             
@@ -252,10 +296,16 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
             self.scene.RemoveActor(ObjectsManager.tracts_list[zin].actor)
             ObjectsManager.RemoveTractographyObject(zin)
             
-        self.iren.Render();
+        self.iren.Render()
         
     ## ROI related actions
     def _add_sphere_roi(self,_button):
+        O = ROIObject()
+        O.InitSphereROI(center=[0,0,0],radius=10)
+        self.scene.AddActor(O.actor)
+        ObjectsManager.AddROIObject(O)
+        ROI_Name = 'ROI_' + str(len(ObjectsManager.rois_list) + 1)
+        self.roiListWidget.addItem(ROI_Name)
         print('_add_sphere_roi')        
         
     ## Volume related actions
@@ -293,7 +343,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
             print(fileName)
             Q = fileName[len(fileName)-4:len(fileName)]
             if(Q == '.mat' or Q == '.MAT'):
-                self.LoadAndDisplayTract(fileName,colorby='random');
+                self.LoadAndDisplayTract(fileName,colorby='fe_seg');
             # A = self.mymenu.get_file_names();
         # SEL = self.mymenu.current_directory + '/' + self.mymenu.listbox.selected[0];
         
@@ -415,6 +465,66 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
             self.scene.RemoveActor(ObjectsManager.fod_list[0])            
             ObjectsManager.RemoveFODObject()
                         
+    def keyboardEvent(self,obj,event):
+        key = self.iren.GetKeySym()
+        if(key == 'm'):
+            self._interactor_actor()
+            print('Style actor')
+
+        elif(key == 'o'):
+            self._interactor_camera()
+            if(len(ObjectsManager.rois_list) > 0):
+                print(ObjectsManager.rois_list[-1].actor.GetCenter())
+            if(len(ObjectsManager.tracts_list) > 0):
+                print(ObjectsManager.tracts_list[-1].actor.GetCenter())
+            print('Style camera')
+
+        elif(key == 'i'):
+            print('Intersection')
+            sphere_origin = ObjectsManager.rois_list[-1].actor.GetCenter()
+            sphere_radius = ObjectsManager.rois_list[-1].source.GetRadius()
+            
+            #filter = vtk.vtkIntersectionPolyDataFilter()
+            #filter.SetInputConnection(0,ObjectsManager.rois_list[-1].source.GetOutputPort())
+            #filter.SetInputConnection(1,ObjectsManager.rois_list[-2].source.GetOutputPort())
+            #filter.SetInputConnection(1,self.test_line_source.GetOutputPort())
+            #filter.SetSplitFirstOutput(0)
+            #filter.SetSplitSecondOutput(0)
+            #filter.Update()
+            #Inter = vtk.vtkActor()
+            #polymap = vtk.vtkPolyDataMapper()
+            #polymap.SetInputConnection(filter.GetOutputPort())
+            #polymap.ScalarVisibilityOff()
+            #Inter.SetMapper(polymap)
+            
+            #self.scene.RemoveActor(ObjectsManager.rois_list[-1].actor)
+            #self.scene.RemoveActor(ObjectsManager.rois_list[-2].actor)
+            #self.scene.AddActor(Inter)
+            
+            enc = vtk.vtkSelectEnclosedPoints()
+            #enc.SetInputConnection(self.test_line_source.GetOutputPort())
+            transf = vtk.vtkTransform()
+            transf.SetMatrix(ObjectsManager.tracts_list[-1].actor.GetMatrix())
+            transfP = vtk.vtkTransformPolyDataFilter()
+            transfP.SetTransform(transf)
+            transfP.SetInputDataObject(ObjectsManager.tracts_list[-1].data)
+            transfP.Update()
+            enc.SetInputDataObject(transfP.GetOutput())
+            enc.SetSurfaceConnection(ObjectsManager.rois_list[-1].source.GetOutputPort())
+            enc.Update()
+            
+            insideArray = enc.GetOutput().GetPointData().GetArray("SelectedPoints")
+            print(insideArray.GetNumberOfTuples())
+            count = 0
+            for i in range(0,insideArray.GetNumberOfTuples()):
+                count += insideArray.GetComponent(i,0)
+            print(count)
+
+            #points,lines = ObjectsManager.tracts_list[-1].GetPointsAndLines()
+            #print(points)
+            #print(lines)
+
+        print('Keyboard ' + key)
 
     def leftButtonPressEvent(self,obj,event):
         clickPos = self.iren.GetEventPosition()
@@ -427,22 +537,21 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         
         if(self.current_actor != 0 and self.current_actor_properties != 0):
             self.current_actor.GetProperty().DeepCopy(self.current_actor_properties)
-            self.current_actor = 0;
-            self.current_actor_properties = 0;
+            self.current_actor = 0
+            self.current_actor_properties = 0
             
         if(NewPickedActor != None):
             if(NewPickedActor == self.current_actor):
                 return
           
-                
-            self.current_actor = NewPickedActor;
+            self.current_actor = NewPickedActor
             # try:
             # index = ObjectsManager.tracts_list.index(NewPickedActor)
             index = ObjectsManager.IndexOfTractographyObject(NewPickedActor)
             if(index != -1):
                 print('Found actor in list ' + str(index))
                 self.tractsList.setCurrentRow(index)
-                self.current_actor_properties = vtk.vtkProperty();
+                self.current_actor_properties = vtk.vtkProperty()
                 self.current_actor_properties.DeepCopy(self.current_actor.GetProperty())
                 ObjectsManager.tracts_list[index].ActorHighlightedProps()
                 self.iren.Render()
@@ -520,13 +629,14 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         ObjectsManager.images_list[which_image].UpdateLUT()    
         
         dataV = ObjectsManager.images_list[which_image].data
+        data_aff = ObjectsManager.images_list[which_image].affine        
         minV = ObjectsManager.images_list[which_image].minVal
         maxV = ObjectsManager.images_list[which_image].maxVal
         lut = ObjectsManager.images_list[which_image].lut
         
-        self.axial_slice = actor.slicer(dataV,value_range=(minV,maxV),lookup_colormap=lut)
-        self.coronal_slice = actor.slicer(dataV,value_range=(minV,maxV),lookup_colormap=lut)
-        self.sagittal_slice = actor.slicer(dataV,value_range=(minV,maxV),lookup_colormap=lut)
+        self.axial_slice = actor.slicer(dataV,affine=data_aff,value_range=(minV,maxV),lookup_colormap=lut)
+        self.coronal_slice = actor.slicer(dataV,affine=data_aff,value_range=(minV,maxV),lookup_colormap=lut)
+        self.sagittal_slice = actor.slicer(dataV,affine=data_aff,value_range=(minV,maxV),lookup_colormap=lut)
         z = self.axialSlider.value()-1
         x = self.coronalSlider.value()-1
         y = self.sagittalSlider.value()-1
@@ -558,15 +668,23 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         # self.scene.ResetCameraClippingRange()
         
 
-    def LoadAndDisplayTract(self,filename,colorby='random'):
+    def LoadAndDisplayTract(self,filename,colorby='fe_seg'):
         print('Going to load ' + filename)
-
-        tractography = TractographyObject(filename,colorby)
+        
+        #ObjectsManager.images_list[self.current_image]
+        if('.trk' in filename or '.vtk' in filename):
+            if(self.current_image < len(ObjectsManager.images_list)):
+                tractography = TractographyObject(filename,colorby,affine=ObjectsManager.images_list[self.current_image].affine,size4centering=ObjectsManager.images_list[self.current_image].data.shape)
+            else:
+                print('First load and select a reference image')
+                return
+        else:
+            tractography = TractographyObject(filename,colorby)
 
         ObjectsManager.AddTractographyObject(tractography)
         
         self.scene.AddActor(tractography.actor);
-        self.scene.ResetCamera();
+        self.scene.ResetCamera()
         self.scene.ResetCameraClippingRange()
         
         filename = filename.replace('\\','/')
@@ -576,11 +694,26 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
 
         print('Done')
 
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
 
-vapp = QtWidgets.QApplication(sys.argv);
-window = VisorMainAppQt();
-sys.exit(vapp.exec_())
-sys.exit()#(vapp.exec_())
-quit()
-exit()
-# vapp.OpenWindow();
+    def dropEvent(self, event):
+        files = [u.toLocalFile() for u in event.mimeData().urls()]
+        for f in files:
+            print(f)
+            if('.nii' in f):
+                self.LoadAndDisplayImage(f)
+            elif('.mat' in f or '.trk' in f or '.tck' in f or '.vtk' in f):
+                self.LoadAndDisplayTract(f)
+            
+if __name__ == '__main__':
+    vapp = QtWidgets.QApplication(sys.argv);
+    window = VisorMainAppQt();
+    sys.exit(vapp.exec_())
+    sys.exit()#(vapp.exec_())
+    quit()
+    exit()
+    # vapp.OpenWindow();

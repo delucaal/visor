@@ -52,3 +52,19 @@ class ObjectsManager(object):
     def RemoveImageObject(zin):
         ObjectsManager.images_list.remove(ObjectsManager.images_list[zin])
     
+    @staticmethod
+    def AddROIObject(theROI):
+        ObjectsManager.rois_list.append(theROI)
+    
+    @staticmethod
+    def RemoveROIObject(zin):
+        ObjectsManager.rois_list.remove(ObjectsManager.rois_list[zin])
+        
+    @staticmethod
+    def IndexOfROIObject(theActor):
+        idx = -1
+        for i in range(0,len(ObjectsManager.rois_list)):
+            if(ObjectsManager.rois_list[i].actor == theActor):
+                idx = i
+                break
+        return idx

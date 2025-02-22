@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>834</width>
-    <height>667</height>
+    <height>688</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -301,7 +301,7 @@
          </rect>
         </property>
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+         <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -498,15 +498,27 @@
            <bool>true</bool>
           </property>
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <sizepolicy hsizetype="Expanding" vsizetype="MinimumExpanding">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>200</height>
+           </size>
+          </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>1</number>
           </property>
           <widget class="QWidget" name="generalPropertiesTab">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>200</height>
+            </size>
+           </property>
            <attribute name="title">
             <string>General</string>
            </attribute>
@@ -658,6 +670,12 @@
            </widget>
           </widget>
           <widget class="QWidget" name="tab">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>200</height>
+            </size>
+           </property>
            <attribute name="title">
             <string>Tract color light</string>
            </attribute>
@@ -864,7 +882,7 @@
        <attribute name="title">
         <string>ROIs</string>
        </attribute>
-       <widget class="QListWidget" name="ROIsList">
+       <widget class="QListWidget" name="ROIsListWidget">
         <property name="geometry">
          <rect>
           <x>10</x>
@@ -909,7 +927,7 @@
      <x>0</x>
      <y>0</y>
      <width>834</width>
-     <height>22</height>
+     <height>37</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
