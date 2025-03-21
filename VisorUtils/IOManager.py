@@ -14,6 +14,7 @@ from dipy.io.streamline import load_tractogram
 from vtk import vtkPolyDataReader
 from vtkmodules.util import numpy_support
 import vtk
+from vtk.util.numpy_support import vtk_to_numpy
 
 class VisorIO(object):
     
@@ -92,3 +93,18 @@ class VisorIO(object):
             Tracts.append(P[:,(1,0,2)])
             
         return Tracts
+    
+    @staticmethod
+    def GetPointsLinesOfPolyData(polydata):
+        vtp = polydata.GetLines()
+        points = vtk_to_numpy(polydata.GetPoints().GetData())
+        vtp.InitTraversal()
+        all_line_ids = vtk.vtkIdList()      
+        Lines = np.zeros((polydata.GetNumberOfLines(),2))  
+        count = 0
+        while(vtp.GetNextCell(all_line_ids)):
+            #print('Line has ' + str(all_line_ids.GetNumberOfIds()) + ' points')
+            Lines[count,:] = [all_line_ids.GetId(0),all_line_ids.GetId(all_line_ids.GetNumberOfIds()-1)]
+            count += 1
+            
+        return points,Lines

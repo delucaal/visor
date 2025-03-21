@@ -171,34 +171,34 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self._interactor_camera()
         
         self._add_sphere_roi(0)
-        self._add_sphere_roi(0)
-        points = vtk.vtkPoints()
-        lines = vtk.vtkCellArray()
-        lines.InsertNextCell(3)
-        points.InsertNextPoint((-15,-15,-15))
-        lines.InsertCellPoint(0)
-        points.InsertNextPoint((0,0,0))
-        lines.InsertCellPoint(1)
-        points.InsertNextPoint((15,15,15))
-        lines.InsertCellPoint(2)
-        data = vtk.vtkPolyData()
-        data.SetPoints(points)
-        data.SetLines(lines)
-        self.test_line_s = data
-        self.test_line_source = vtk.vtkPolyLineSource()
-        self.test_line_source.SetNumberOfPoints(2)
-        self.test_line_source.SetPoints(points)
+        #self._add_sphere_roi(0)
+        #points = vtk.vtkPoints()
+        #lines = vtk.vtkCellArray()
+        #lines.InsertNextCell(3)
+        #points.InsertNextPoint((-15,-15,-15))
+        #lines.InsertCellPoint(0)
+        #points.InsertNextPoint((0,0,0))
+        #lines.InsertCellPoint(1)
+        #points.InsertNextPoint((15,15,15))
+        #lines.InsertCellPoint(2)
+        #data = vtk.vtkPolyData()
+        #data.SetPoints(points)
+        #data.SetLines(lines)
+        #self.test_line_s = data
+        #self.test_line_source = vtk.vtkPolyLineSource()
+        #self.test_line_source.SetNumberOfPoints(2)
+        #self.test_line_source.SetPoints(points)
         #self.test_line_source.SetInputData(data)
         #self.test_line_source.SetOutput(data)
 
-        vtkm = vtk.vtkPolyDataMapper()
-        vtkm.SetInputConnection(self.test_line_source.GetOutputPort())#SetInputDataObject(data)
-        vtka = vtk.vtkActor()
-        vtka.SetMapper(vtkm)
+        #vtkm = vtk.vtkPolyDataMapper()
+        #vtkm.SetInputConnection(self.test_line_source.GetOutputPort())#SetInputDataObject(data)
+        #vtka = vtk.vtkActor()
+        #vtka.SetMapper(vtkm)
         #self.scene.AddActor(vtka)
-        self.test_line_mapper = vtkm
+        #self.test_line_mapper = vtkm
                         
-        ObjectsManager.rois_list[-1].source.SetCenter((-5,-5,0))
+        #ObjectsManager.rois_list[-1].source.SetCenter((-5,-5,0))
                 
     def _interactor_camera(self):
         self.style = vtk.vtkInteractorStyleTrackballCamera()
@@ -484,18 +484,6 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
             sphere_origin = ObjectsManager.rois_list[-1].actor.GetCenter()
             sphere_radius = ObjectsManager.rois_list[-1].source.GetRadius()
             
-            #filter = vtk.vtkIntersectionPolyDataFilter()
-            #filter.SetInputConnection(0,ObjectsManager.rois_list[-1].source.GetOutputPort())
-            #filter.SetInputConnection(1,ObjectsManager.rois_list[-2].source.GetOutputPort())
-            #filter.SetInputConnection(1,self.test_line_source.GetOutputPort())
-            #filter.SetSplitFirstOutput(0)
-            #filter.SetSplitSecondOutput(0)
-            #filter.Update()
-            #Inter = vtk.vtkActor()
-            #polymap = vtk.vtkPolyDataMapper()
-            #polymap.SetInputConnection(filter.GetOutputPort())
-            #polymap.ScalarVisibilityOff()
-            #Inter.SetMapper(polymap)
             
             #self.scene.RemoveActor(ObjectsManager.rois_list[-1].actor)
             #self.scene.RemoveActor(ObjectsManager.rois_list[-2].actor)
@@ -509,16 +497,45 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
             transfP.SetTransform(transf)
             transfP.SetInputDataObject(ObjectsManager.tracts_list[-1].data)
             transfP.Update()
+            
+            transf2 = vtk.vtkTransform()
+            transf2.SetMatrix(ObjectsManager.rois_list[-1].actor.GetMatrix())
+            transfP2 = vtk.vtkTransformPolyDataFilter()
+            transfP2.SetTransform(transf2)
+            transfP2.SetInputConnection(ObjectsManager.rois_list[-1].source.GetOutputPort())
+            transfP2.Update()
+
             enc.SetInputDataObject(transfP.GetOutput())
-            enc.SetSurfaceConnection(ObjectsManager.rois_list[-1].source.GetOutputPort())
+            #enc.SetSurfaceConnection(ObjectsManager.rois_list[-1].source.GetOutputPort())
+            enc.SetSurfaceConnection(transfP2.GetOutputPort())
             enc.Update()
             
             insideArray = enc.GetOutput().GetPointData().GetArray("SelectedPoints")
             print(insideArray.GetNumberOfTuples())
             count = 0
-            for i in range(0,insideArray.GetNumberOfTuples()):
-                count += insideArray.GetComponent(i,0)
-            print(count)
+            LineSelector = vtk_to_numpy(insideArray) #np.zeros((insideArray.GetNumberOfTuples(),))
+            #for i in range(0,insideArray.GetNumberOfTuples()):
+            #    count += insideArray.GetComponent(i,0)
+            #    LineSelector[i] = insideArray.GetComponent(i,0)
+            #    if(LineSelector[i] > 0):
+            #        print("Great!")
+            print(LineSelector.sum())
+            ObjectsManager.tracts_list[-1].ColorSpecificLinesTemp(LineSelector)
+            ObjectsManager.tracts_list[-1].actor.Modified()
+            self.iren.Render()
+
+            filter = vtk.vtkIntersectionPolyDataFilter()
+            filter.SetInputDataObject(0,transfP.GetOutput())
+            filter.SetInputConnection(1,transfP2.GetOutputPort())
+            #filter.SetInputConnection(1,self.test_line_source.GetOutputPort())
+            #filter.SetSplitFirstOutput(0)
+            #filter.SetSplitSecondOutput(0)
+            filter.Update()
+            #Inter = vtk.vtkActor()
+            polymap = vtk.vtkPolyDataMapper()
+            polymap.SetInputConnection(filter.GetOutputPort())
+            #polymap.ScalarVisibilityOff()
+            #Inter.SetMapper(polymap)
 
             #points,lines = ObjectsManager.tracts_list[-1].GetPointsAndLines()
             #print(points)
@@ -668,7 +685,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         # self.scene.ResetCameraClippingRange()
         
 
-    def LoadAndDisplayTract(self,filename,colorby='fe_seg'):
+    def LoadAndDisplayTract(self,filename,colorby='random'):
         print('Going to load ' + filename)
         
         #ObjectsManager.images_list[self.current_image]
