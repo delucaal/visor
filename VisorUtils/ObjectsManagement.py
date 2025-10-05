@@ -7,9 +7,9 @@ Created on Mon Mar 30 18:04:40 2020
 """
 
 class ObjectsManager(object):
-    tracts_list = [];
-    fod_list = [];
-    images_list = [];
+    tracts_list = []
+    fod_list = []
+    images_list = []
     rois_list = []
 
     @staticmethod
@@ -40,6 +40,15 @@ class ObjectsManager(object):
         idx = -1
         for i in range(0,len(ObjectsManager.tracts_list)):
             if(ObjectsManager.tracts_list[i].actor == theActor):
+                idx = i
+                break
+        return idx
+            
+    @staticmethod
+    def IndexOfROIObject(theActor):
+        idx = -1
+        for i in range(0,len(ObjectsManager.rois_list)):
+            if(ObjectsManager.rois_list[i].actor == theActor):
                 idx = i
                 break
         return idx

@@ -32,9 +32,9 @@ from VisorUtils.VisorObjects import ROIObject, ImageObject, TractographyObject
 
 class VisorMainAppQt(QtWidgets.QMainWindow):
     window_open = False
-    current_actor = 0;
-    current_actor_properties = 0;
-    cdir = '';
+    current_actor = 0
+    current_actor_properties = 0
+    cdir = ''
     available_colormaps = ('gray','viridis','plasma','inferno')
     
     def __init__(self):
@@ -158,7 +158,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.vl = Qt.QVBoxLayout()
         self.vl.addWidget(self.vtkWidget)
         self.scene = vtk.vtkRenderer()
-        self.vtkWidget.GetRenderWindow().AddRenderer(self.scene);
+        self.vtkWidget.GetRenderWindow().AddRenderer(self.scene)
         self.scene.ResetCamera()
         
         self.iren = self.vtkWidget.GetRenderWindow().GetInteractor()
@@ -199,6 +199,34 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         #self.test_line_mapper = vtkm
                         
         #ObjectsManager.rois_list[-1].source.SetCenter((-5,-5,0))
+        
+        self.axes = vtk.vtkAxesActor()
+        self.axes.SetTotalLength(400, 400, 400)  # length of X, Y, Z axes
+        self.orientation_marker = vtk.vtkOrientationMarkerWidget()
+        self.axes.SetShaftTypeToCylinder()
+        self.axes.SetCylinderRadius(0.05)
+        self.axes.SetConeRadius(0.2)
+        self.orientation_marker.SetOrientationMarker(self.axes)
+        self.orientation_marker.SetViewport(0.0, 0.0, .15, .15)  # bottom-left corner
+        self.orientation_marker.SetInteractor(self.iren)  # your QVTKRenderWindowInteractor
+        self.orientation_marker.EnabledOn()
+        self.orientation_marker.InteractiveOff()
+        
+        camera = vtk.vtkCamera()
+        # 1️⃣ Focal point = where camera looks
+        camera.SetFocalPoint(0, 0, 0)
+
+        # 2️⃣ Position = where the camera is located (along +Z, distance = 100)
+        distance = 100
+        camera.SetPosition(0, 0, distance)
+
+        # 3️⃣ Up vector = which direction is "up" in the view
+        camera.SetViewUp(0, 1, 0)
+
+        # Assign the camera to the renderer
+        self.scene.SetActiveCamera(camera)
+        self.scene.ResetCameraClippingRange()  # adjust near/far planes
+        #self.scene.AddActor(axes)
                 
     def _interactor_camera(self):
         self.style = vtk.vtkInteractorStyleTrackballCamera()
@@ -207,27 +235,31 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.iren.SetInteractorStyle(self.style)
 
     def _interactor_actor(self):
+#        if(self.current_actor != 0 and self.current_actor is type(ROIObject)):
         self.style = vtk.vtkInteractorStyleTrackballActor()
         self.style.SetCurrentRenderer(self.scene)
         self.style.SetInteractor(self.iren)
         self.iren.SetInteractorStyle(self.style)
-            
+        
     ## Tract related actions    
     def _track_clicked(self, _item):
-        cR = self.tractsListWidget.currentRow();
-        self.current_actor = ObjectsManager.tracts_list[cR].actor;
+        cR = self.tractsListWidget.currentRow()
+        self.current_actor = ObjectsManager.tracts_list[cR].actor
         self.current_actor_properties = vtk.vtkProperty()
         self.current_actor_properties.DeepCopy(self.current_actor.GetProperty())
         self.current_actor.GetProperty().SetOpacity(1.0)
         self.iren.Render()
 
         print('_track_clicked ' + str(cR))
-        self.tractPropertiesContainer.setVisible(True);
+        self.tractPropertiesContainer.setVisible(True)
+        
+        # Ensure tracts are only inspected and not moved
+        self._interactor_camera()
             
     def _tract_color_slider_changed(self,_item):
         # if(self.current_actor != 0):
         print('_tract_color_slider_changed ' + str(self.tractColRedSlider.value()))
-        cR = self.tractsListWidget.currentRow();
+        cR = self.tractsListWidget.currentRow()
         cR = ObjectsManager.tracts_list[cR]
         cR.SetColorSingle(red=self.tractColRedSlider.value(),
                                                  green=self.tractColGreenSlider.value(),
@@ -277,11 +309,11 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
     def _delete_all_tracts(self, _button):
         print('delete tracts')
         for actor in ObjectsManager.tracts_list:
-            self.scene.RemoveActor(actor.actor);
+            self.scene.RemoveActor(actor.actor)
             
         ObjectsManager.RemoveTractographyObjects()
-        self.tractsListWidget.clear();
-        self.scene.ResetCamera();
+        self.tractsListWidget.clear()
+        self.scene.ResetCamera()
         self.scene.ResetCameraClippingRange()
         
     def _delete_one_tract(self,_button):
@@ -481,66 +513,15 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
 
         elif(key == 'i'):
             print('Intersection')
-            sphere_origin = ObjectsManager.rois_list[-1].actor.GetCenter()
-            sphere_radius = ObjectsManager.rois_list[-1].source.GetRadius()
-            
-            
-            #self.scene.RemoveActor(ObjectsManager.rois_list[-1].actor)
-            #self.scene.RemoveActor(ObjectsManager.rois_list[-2].actor)
-            #self.scene.AddActor(Inter)
-            
-            enc = vtk.vtkSelectEnclosedPoints()
-            #enc.SetInputConnection(self.test_line_source.GetOutputPort())
-            transf = vtk.vtkTransform()
-            transf.SetMatrix(ObjectsManager.tracts_list[-1].actor.GetMatrix())
-            transfP = vtk.vtkTransformPolyDataFilter()
-            transfP.SetTransform(transf)
-            transfP.SetInputDataObject(ObjectsManager.tracts_list[-1].data)
-            transfP.Update()
-            
-            transf2 = vtk.vtkTransform()
-            transf2.SetMatrix(ObjectsManager.rois_list[-1].actor.GetMatrix())
-            transfP2 = vtk.vtkTransformPolyDataFilter()
-            transfP2.SetTransform(transf2)
-            transfP2.SetInputConnection(ObjectsManager.rois_list[-1].source.GetOutputPort())
-            transfP2.Update()
-
-            enc.SetInputDataObject(transfP.GetOutput())
-            #enc.SetSurfaceConnection(ObjectsManager.rois_list[-1].source.GetOutputPort())
-            enc.SetSurfaceConnection(transfP2.GetOutputPort())
-            enc.Update()
-            
-            insideArray = enc.GetOutput().GetPointData().GetArray("SelectedPoints")
-            print(insideArray.GetNumberOfTuples())
-            count = 0
-            LineSelector = vtk_to_numpy(insideArray) #np.zeros((insideArray.GetNumberOfTuples(),))
-            #for i in range(0,insideArray.GetNumberOfTuples()):
-            #    count += insideArray.GetComponent(i,0)
-            #    LineSelector[i] = insideArray.GetComponent(i,0)
-            #    if(LineSelector[i] > 0):
-            #        print("Great!")
-            print(LineSelector.sum())
-            ObjectsManager.tracts_list[-1].ColorSpecificLinesTemp(LineSelector)
-            ObjectsManager.tracts_list[-1].actor.Modified()
+                        
+            for tract in ObjectsManager.tracts_list:
+                tract.color_tracts_by_roi_intersection_transformed(
+                    rois_list = ObjectsManager.rois_list,
+                    intersect_color = (1,0,0),
+                    alpha_outside = 0.3
+                )
             self.iren.Render()
-
-            filter = vtk.vtkIntersectionPolyDataFilter()
-            filter.SetInputDataObject(0,transfP.GetOutput())
-            filter.SetInputConnection(1,transfP2.GetOutputPort())
-            #filter.SetInputConnection(1,self.test_line_source.GetOutputPort())
-            #filter.SetSplitFirstOutput(0)
-            #filter.SetSplitSecondOutput(0)
-            filter.Update()
-            #Inter = vtk.vtkActor()
-            polymap = vtk.vtkPolyDataMapper()
-            polymap.SetInputConnection(filter.GetOutputPort())
-            #polymap.ScalarVisibilityOff()
-            #Inter.SetMapper(polymap)
-
-            #points,lines = ObjectsManager.tracts_list[-1].GetPointsAndLines()
-            #print(points)
-            #print(lines)
-
+                
         print('Keyboard ' + key)
 
     def leftButtonPressEvent(self,obj,event):
@@ -552,26 +533,42 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         # get the new
         NewPickedActor = picker.GetActor()
         
+        # Restore properties of the previously picked actor
         if(self.current_actor != 0 and self.current_actor_properties != 0):
             self.current_actor.GetProperty().DeepCopy(self.current_actor_properties)
             self.current_actor = 0
             self.current_actor_properties = 0
             
         if(NewPickedActor != None):
-            if(NewPickedActor == self.current_actor):
-                return
+            #if(NewPickedActor == self.current_actor):
+            #    return
           
             self.current_actor = NewPickedActor
             # try:
             # index = ObjectsManager.tracts_list.index(NewPickedActor)
             index = ObjectsManager.IndexOfTractographyObject(NewPickedActor)
             if(index != -1):
-                print('Found actor in list ' + str(index))
-                self.tractsList.setCurrentRow(index)
+                print('Found tract in list ' + str(index))
+                self.tractsListWidget.setCurrentRow(index)
                 self.current_actor_properties = vtk.vtkProperty()
                 self.current_actor_properties.DeepCopy(self.current_actor.GetProperty())
                 ObjectsManager.tracts_list[index].ActorHighlightedProps()
                 self.iren.Render()
+                self._interactor_camera() # Tracts should not be moved
+            else:
+                # Probably it is an ROI
+                index = ObjectsManager.IndexOfROIObject(NewPickedActor)
+                if(index != -1):
+                    print('Found ROI in list ' + str(index))
+                #self.tractsList.setCurrentRow(index)
+                for roi in ObjectsManager.rois_list:
+                    roi.ActorDefaultProps()
+                ObjectsManager.rois_list[index].ActorHighlightedProps()
+                self.iren.Render()
+                self._interactor_actor() # ROIs can be moved
+        else:
+            self._interactor_camera() # empty click -> default camera behavior
+
         # except:
             # print('Nothing to do')
         self.style.OnLeftButtonDown()
@@ -663,17 +660,17 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.axial_slice.display_extent(0, dataV.shape[0] - 1, 0, dataV.shape[1] - 1, z, z)
         self.coronal_slice.display_extent(0, dataV.shape[1] - 1, x, x, 0, dataV.shape[2]-1)
         self.sagittal_slice.display_extent(y, y, 0, dataV.shape[0] - 1, 0, dataV.shape[2]-1)
-        self.scene.ResetCamera();
+        self.scene.ResetCamera()
         self.scene.ResetCameraClippingRange()
         self.iren.Render()
        
     def LoadFODandDisplay(self, filename):
 
-        fA = visorFODActor();
+        fA = visorFODActor()
         fA.setRenderer(self.iren)
         fA.setTargetVoxelSize(self.target_vs)
-        fA.loadFile(filename);
-        ObjectsManager.AddFODObject(fA);
+        fA.loadFile(filename)
+        ObjectsManager.AddFODObject(fA)
         
         # self.axialSlider.setMinimum(1)
         # self.axialSlider.setMaximum(fA.odf_data.shape[2])
@@ -709,6 +706,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
                             
         self.tractsListWidget.addItem(filename[-1])
 
+        self.iren.Render()
         print('Done')
 
     def dragEnterEvent(self, event):

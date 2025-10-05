@@ -46,7 +46,32 @@ class ROIObject(object):
         if(self.actor != 0 and self.source != 0):
             self.source.SetRadius(radius)
         
-        
+    def ActorDefaultProps(self):
+         actor = self.actor
+         #actor.GetProperty().SetEdgeVisibility(1)
+         #actor.GetProperty().SetEdgeColor(0.9,0.9,0.4)
+         actor.GetProperty().SetRenderLinesAsTubes(1)
+         #actor.GetProperty().SetRenderPointsAsSpheres(1)
+         actor.GetProperty().SetLineWidth(2)
+         #actor.GetProperty().SetVertexVisibility(1)
+         #actor.GetProperty().SetVertexColor(0.5,1.0,0.8)
+         #actor.GetProperty().SetRepresentationToPoints()
+         #actor.GetProperty().SetColor(0.0,1.0,0.0) 
+         actor.GetProperty().SetAmbient(0.05)
+         actor.GetProperty().SetLighting(1)
+         actor.GetProperty().SetInterpolationToGouraud()
+         actor.GetProperty().SetDiffuse(.8)
+         actor.GetProperty().SetSpecular(.5)
+         actor.GetProperty().SetSpecularColor(1.0,1.0,1.0)
+         actor.GetProperty().SetSpecularPower(30.0)
+         
+    def ActorHighlightedProps(self):
+         current_actor = self.actor
+         current_actor.GetProperty().SetColor(1.0, 0.0, 0.0)
+         current_actor.GetProperty().SetDiffuse(1.0)
+         current_actor.GetProperty().SetSpecular(0.0)          
+         current_actor.GetProperty().SetOpacity(1.0) 
+                 
 class ImageObject(object):
         
     def __init__(self, filename, shortName, target_vs=0, minVal=0, maxVal=255, alpha=255, colormap='gray'):
@@ -129,6 +154,72 @@ class TractographyObject(object):
         self.color_mode = color_mode
         self.ActorDefaultProps()
         
+    def PreparePolydataGivenPointsAndLines_chat(self, Tracts, color_mode=0, my_color=[255,255,255], max_tracts=1e5):
+        points = vtk.vtkPoints()
+        lines = vtk.vtkCellArray()
+
+        # Use RGBA for future transparency if desired
+        Colors = vtk.vtkUnsignedCharArray()
+        Colors.SetNumberOfComponents(3)
+        Colors.SetName("Colors")
+
+        idx = 0
+
+        for i in range(0, min(len(Tracts), int(max_tracts))):
+            if color_mode == 0:
+                # One color per full line
+                line = vtk.vtkPolyLine()
+                line.GetPointIds().SetNumberOfIds(Tracts[i].shape[0])
+                for j in range(Tracts[i].shape[0]):
+                    points.InsertNextPoint(Tracts[i][j, (1, 0, 2)])
+                    line.GetPointIds().SetId(j, idx)
+                    idx += 1
+                lines.InsertNextCell(line)
+
+                p1, p2 = Tracts[i][0, :], Tracts[i][-1, :]
+                v = np.abs(p2 - p1)
+                v = v / np.linalg.norm(v)
+                Colors.InsertNextTuple3(v[0]*255, v[1]*255, v[2]*255)
+
+            elif color_mode == 1:
+                # Per-segment color (one cell per segment)
+                for j in range(1, Tracts[i].shape[0]):
+                    p1 = Tracts[i][j-1, (1,0,2)]
+                    p2 = Tracts[i][j, (1,0,2)]
+                    v = np.abs(p2 - p1)
+                    v = v / np.linalg.norm(v)
+
+                    lines.InsertNextCell(2)
+                    points.InsertNextPoint(p1)
+                    lines.InsertCellPoint(idx)
+                    points.InsertNextPoint(p2)
+                    lines.InsertCellPoint(idx+1)
+                    idx += 2
+
+                    Colors.InsertNextTuple3(v[0]*255, v[1]*255, v[2]*255)
+
+            elif color_mode == 2:
+                # Uniform color for the whole line
+                line = vtk.vtkPolyLine()
+                line.GetPointIds().SetNumberOfIds(Tracts[i].shape[0])
+                for j in range(Tracts[i].shape[0]):
+                    points.InsertNextPoint(Tracts[i][j, (1, 0, 2)])
+                    line.GetPointIds().SetId(j, idx)
+                    idx += 1
+                lines.InsertNextCell(line)
+                Colors.InsertNextTuple3(*my_color)
+
+        # Build polydata
+        data = vtk.vtkPolyData()
+        data.SetPoints(points)
+        data.SetLines(lines)
+
+        # 🔹 Use cell data for consistent coloring
+        data.GetCellData().SetScalars(Colors)
+        data.GetPointData().SetScalars(None)
+
+        return data
+        
     def PreparePolydataGivenPointsAndLines(self,Tracts,color_mode=0,my_color=[255,255,255],max_tracts=1e5):
         points = vtk.vtkPoints()
         lines = vtk.vtkCellArray()
@@ -145,9 +236,9 @@ class TractographyObject(object):
                 for j in range(0,Tracts[i].shape[0]):
                     points.InsertNextPoint(Tracts[i][j,(1,0,2)])
                     lines.InsertCellPoint(idx)
-                    idx+=1;
-                p1 = Tracts[i][0,:];
-                p2 = Tracts[i][-1,:];
+                    idx+=1
+                p1 = Tracts[i][0,:]
+                p2 = Tracts[i][-1,:]
                 v = np.abs(p2-p1)
                 v = v/np.linalg.norm(v,2)
                 Colors.InsertNextTuple3(v[0]*255,v[1]*255,v[2]*255)
@@ -157,8 +248,8 @@ class TractographyObject(object):
                 end_point = np.min((tracts_step,Tracts[i].shape[0]))
                 
                 for j in range(1,end_point):
-                    p1 = Tracts[i][j-1,(1,0,2)];
-                    p2 = Tracts[i][j,(1,0,2)];
+                    p1 = Tracts[i][j-1,(1,0,2)]
+                    p2 = Tracts[i][j,(1,0,2)]
                     v = np.abs(p2-p1)
                     v = v/np.linalg.norm(v,2)
                     lines.InsertNextCell(2)
@@ -190,7 +281,76 @@ class TractographyObject(object):
         #data.GetCellData().SetScalars(Colors)
         data.GetPointData().SetScalars(Colors)
         return data
+    
+    def color_tracts_by_roi_intersection_transformed(self, 
+                                                    rois_list,
+                                                    intersect_color=(1,0,0),
+                                                    alpha_outside=0.1):
+        """
+        Color tracts that intersect ALL ROIs (logical AND) after applying transforms.
 
+        Parameters
+        ----------
+        tract_polydata : vtkPolyData
+            All tracts.
+        tract_matrix : vtkMatrix4x4
+            Transformation to apply to tract_polydata.
+        roi_list : list of vtkPolyData or vtkSphereSource
+            ROIs to test intersection.
+        roi_matrices : list of vtkMatrix4x4
+            Transformations to apply to each ROI.
+        intersect_color : tuple(float, float, float)
+            RGB for intersecting tracts.
+        alpha_outside : float
+            Opacity for non-intersecting tracts (0-1).
+        """
+
+        enc = vtk.vtkSelectEnclosedPoints()
+        #enc.SetInputConnection(self.test_line_source.GetOutputPort())
+        transf = vtk.vtkTransform()
+        transf.SetMatrix(self.actor.GetMatrix())
+        transfP = vtk.vtkTransformPolyDataFilter()
+        transfP.SetTransform(transf)
+        transfP.SetInputDataObject(self.data)
+        transfP.Update()
+        tracts_transformed = transfP.GetOutput()
+                
+        # Initialize combined point mask (all True for logical AND)
+        # transformed_tracts: vtkPolyData of fibers (after transform)
+        n_cells = tracts_transformed.GetNumberOfCells()
+        LineSelector = np.ones(n_cells, dtype=bool)  # start with True
+
+        for roi in rois_list:
+            # Transform ROI
+            transf2 = vtk.vtkTransform()
+            transf2.SetMatrix(roi.actor.GetMatrix())
+            transfP2 = vtk.vtkTransformPolyDataFilter()
+            transfP2.SetTransform(transf2)
+            transfP2.SetInputConnection(roi.source.GetOutputPort())
+            transfP2.Update()
+            
+            # Select points inside current ROI
+            enc = vtk.vtkSelectEnclosedPoints()
+            enc.SetInputDataObject(tracts_transformed)
+            enc.SetSurfaceConnection(transfP2.GetOutputPort())
+            enc.Update()
+            
+            insideArray = vtk_to_numpy(enc.GetOutput().GetPointData().GetArray("SelectedPoints")).astype(bool)
+            
+            # Now compute per-fiber mask for this ROI
+            fiber_mask = np.zeros(n_cells, dtype=bool)
+            for cell_id in range(n_cells):
+                ids = tracts_transformed.GetCell(cell_id).GetPointIds()
+                if np.any([insideArray[ids.GetId(j)] for j in range(ids.GetNumberOfIds())]):
+                    fiber_mask[cell_id] = True
+
+            # AND across ROIs
+            LineSelector = np.logical_and(LineSelector, fiber_mask)
+                
+        print(LineSelector.sum())
+        self.ColorSpecificLinesTemp3(LineSelector)
+        self.actor.Modified()
+                
     def SetColorSingle(self,red=255,green=255,blue=255):
         mapper = self.actor.GetMapper()
         poly = mapper.GetInputDataObject(0,0).GetCellData()
@@ -229,37 +389,33 @@ class TractographyObject(object):
                     
         poly.SetScalars(Colors)
         
-    def ColorSpecificLinesTemp(self,selected_lines):
+    def ColorSpecificLinesTemp3(self, selected_lines):
+        """
+        Color fibers based on a boolean array per fiber.
+        selected_lines: boolean array of length = number of cells
+        """
         mapper = self.actor.GetMapper()
-        poly = mapper.GetInputDataObject(0,0).GetCellData()
-        vtp = mapper.GetInputDataObject(0,0).GetLines()
-        points = vtk_to_numpy(mapper.GetInputDataObject(0,0).GetPoints().GetData())
-
-        Colors = vtk.vtkUnsignedCharArray()
-        Colors.SetNumberOfComponents(3)
-        Colors.SetName("Colors")
-
-        vtp.InitTraversal()
-        all_line_ids = vtk.vtkIdList()       
-        idx = 0 
-
-        while(vtp.GetNextCell(all_line_ids)):
-            # Assign red (255, 0, 0) if 1, white (255, 255, 255) if 0
-            line_ids = np.arange(all_line_ids.GetId(0), all_line_ids.GetId(all_line_ids.GetNumberOfIds()-1)+1)
-            line_was_hit = np.any(selected_lines[line_ids] == 1)
-            color = [255, 0, 0] if line_was_hit else [255, 255, 255]
-            for i in range(0,len(line_ids)):#range(selected_lines.shape[0]):
-                #color = [255, 0, 0] if selected_lines[i] == 1 else [255, 255, 255]
-                Colors.InsertNextTuple3(*color)
-
-        # Attach color array to polydata
-        #poly.SetScalars(Colors)
-        mapper.GetInputDataObject(0,0).GetPointData().SetScalars(Colors)    
-
-        # Update the mapper to use per-point coloring
-        #mapper.SetScalarModeToUseCellData()        
-        #mapper.SetScalarModeToUsePointData()
+        polydata = mapper.GetInputDataObject(0,0)
+        n_points = polydata.GetNumberOfPoints()
         
+        Colors = vtk.vtkUnsignedCharArray()
+        Colors.SetNumberOfComponents(4)
+        Colors.SetName("Colors")
+        
+        # Assign color per point according to the cell it belongs to
+        cell_point_ids = vtk.vtkIdList()
+        line_idx = 0
+        for cell_id in range(polydata.GetNumberOfCells()):
+            polydata.GetCellPoints(cell_id, cell_point_ids)
+            color = [255, 0, 0, 255] if selected_lines[cell_id] else [255, 255, 255, 25]
+            for j in range(cell_point_ids.GetNumberOfIds()):
+                Colors.InsertNextTuple4(*color)
+            line_idx += 1
+        
+        # Attach color array to points
+        polydata.GetPointData().SetScalars(Colors)
+        polydata.Modified()
+                
     def GetPointsAndLines(self):
         mapper = self.actor.GetMapper()
         pdata = mapper.GetInputDataObject(0,0)
@@ -277,12 +433,14 @@ class TractographyObject(object):
          #actor.GetProperty().SetVertexColor(0.5,1.0,0.8)
          #actor.GetProperty().SetRepresentationToPoints()
          #actor.GetProperty().SetColor(0.0,1.0,0.0) 
+         actor.GetProperty().SetAmbient(0.05)
          actor.GetProperty().SetLighting(1)
          actor.GetProperty().SetInterpolationToGouraud()
          actor.GetProperty().SetDiffuse(.8)
          actor.GetProperty().SetSpecular(.5)
          actor.GetProperty().SetSpecularColor(1.0,1.0,1.0)
          actor.GetProperty().SetSpecularPower(30.0)
+         
     
     def ActorHighlightedProps(self):
          current_actor = self.actor
