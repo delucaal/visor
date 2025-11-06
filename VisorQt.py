@@ -290,7 +290,16 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.style.SetCurrentRenderer(self.scene)
         self.style.SetInteractor(self.iren)
         self.iren.SetInteractorStyle(self.style)
+        self.iren.AddObserver("EndInteractionEvent", self.onInteractionEnd)
         
+    def onInteractionEnd(self, obj, event):
+        x, y = self.iren.GetEventPosition()
+        picker = vtk.vtkPropPicker()
+        picker.Pick(x, y, 0, self.scene)
+        actor = picker.GetActor()
+        if actor:
+            self.ApplyROIsToTracts()
+            
     ## Tract related actions    
     def _track_clicked(self, _item):
         cR = self.tractsListWidget.currentRow()
@@ -400,8 +409,9 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         O.InitSphereROI(center=[0,0,0],radius=1)
         self.scene.AddActor(O.actor)
         ObjectsManager.AddROIObject(O)
-        ROI_Name = 'ROI_' + str(len(ObjectsManager.rois_list) + 1)
+        ROI_Name = O.Name + ' (Disabled)'
         self.roiListWidget.addItem(ROI_Name)
+        self.iren.Render()
         
     def _roi_clicked(self,_item):
         cR = self.roiListWidget.currentRow()
@@ -411,13 +421,14 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.roiYSlider.setValue(int(ObjectsManager.rois_list[self.current_roi].source.GetCenter()[1]))
         self.roiZSlider.setValue(int(ObjectsManager.rois_list[self.current_roi].source.GetCenter()[2]))
         self.roiSizeSlider.setValue(int(ObjectsManager.rois_list[self.current_roi].source.GetRadius()))
+        ObjectsManager.rois_list[cR].ActorHighlightedProps()
                 
     def _roi_x_slider_changed(self,_item):
         # if(self.current_actor != 0):
         cR = self.roiListWidget.currentRow()
         cR = ObjectsManager.rois_list[cR]   
         position = cR.source.GetCenter()
-        position = [self.roiXSlider.value()/1e1,position[1],position[2]]
+        position = [float(self.roiXSlider.value())/1e3,position[1],position[2]]
         cR.source.SetCenter(position)
         cR.actor.Modified()
         self.iren.Render()
@@ -427,7 +438,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         cR = self.roiListWidget.currentRow()
         cR = ObjectsManager.rois_list[cR]   
         position = cR.source.GetCenter()
-        position = [position[0],self.roiYSlider.value()/1e1,position[2]]
+        position = [position[0],float(self.roiYSlider.value())/1e3,position[2]]
         cR.source.SetCenter(position)
         cR.actor.Modified()
         self.iren.Render()
@@ -437,7 +448,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         cR = self.roiListWidget.currentRow()
         cR = ObjectsManager.rois_list[cR]   
         position = cR.source.GetCenter()
-        position = [position[0],position[1],self.roiZSlider.value()/1e1]
+        position = [position[0],position[1],float(self.roiZSlider.value())/1e3]
         cR.source.SetCenter(position)
         cR.actor.Modified()
         self.iren.Render()
@@ -635,7 +646,14 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
             ObjectsManager.RemoveROIObject(self.troiListWidget.currentRow())
 
     def _toggle_ROI_button(self,_button):
-        ObjectsManager.rois_list[self.roiListWidget.currentRow()].enabled = not ObjectsManager.rois_list[self.roiListWidget.currentRow()].enabled
+        ObjectsManager.rois_list[self.roiListWidget.currentRow()].ToggleEnabled()
+        if(ObjectsManager.rois_list[self.roiListWidget.currentRow()].enabled):
+            self.roisListWidget.currentItem().setText(ObjectsManager.rois_list[self.roiListWidget.currentRow()].Name + ' (Enabled)' )
+        else:
+            self.roisListWidget.currentItem().setText(ObjectsManager.rois_list[self.roiListWidget.currentRow()].Name + ' (Disabled)' )
+        self.ApplyROIsToTracts()
+
+    def ApplyROIsToTracts(self):
         for tract in ObjectsManager.tracts_list:
             tract.color_tracts_by_roi_intersection_optimized(
                 rois_list = ObjectsManager.rois_list,
@@ -660,14 +678,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
 
         elif(key == 'i'):
             print('Intersection')
-                        
-            for tract in ObjectsManager.tracts_list:
-                tract.color_tracts_by_roi_intersection_optimized(
-                    rois_list = ObjectsManager.rois_list,
-                    #intersect_color = (1,0,0),
-                    alpha_outside = 0.3
-                )
-            self.iren.Render()
+            self.ApplyROIsToTracts()
         
         elif(key == 'd'):
             self.set_view_3d()
@@ -724,6 +735,8 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
                 self.iren.Render()
                 self._interactor_actor() # ROIs can be moved
         else:
+            for roi in ObjectsManager.rois_list:
+                roi.ActorDefaultProps()            
             self._interactor_camera() # empty click -> default camera behavior
 
         # except:

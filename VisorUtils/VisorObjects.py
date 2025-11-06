@@ -75,6 +75,9 @@ class ROIObject(object):
          current_actor.GetProperty().SetDiffuse(1.0)
          current_actor.GetProperty().SetSpecular(0.0)          
          current_actor.GetProperty().SetOpacity(1.0) 
+         
+    def ToggleEnabled(self):
+        self.enabled = not self.enabled        
                  
 class ImageObject(object):
         
@@ -88,12 +91,14 @@ class ImageObject(object):
         print(self.origin)
 
         taffine = affine
-        if(type(target_vs) == int or type(target_vs) == float):
-            taffine = affine
-        else:
-            taffine[0:3,0:3] = np.diag(target_vs)
+        #if(type(target_vs) == int or type(target_vs) == float):
+        #    taffine = affine
+        #else:
+        #    taffine[0:3,0:3] = np.diag(target_vs)
         dataV = resample_img(data,target_affine=taffine,interpolation='nearest')
         dataV = dataV.get_fdata()
+        if(dataV.ndim == 4):
+            dataV = dataV[:,:,:,0]
         
         self.data = dataV
         self.affine = taffine
@@ -612,7 +617,7 @@ class TractographyObject(object):
         #polydata.GetCellData().SetScalars(Colors)
         polydata.Modified()
         
-    def ColorSpecificLinesTemp4(self, selected_lines, alpha_outside=15):
+    def ColorSpecificLinesTemp4(self, selected_lines, alpha_outside=20):
         """
         selected_lines: boolean array of length = number of cells
                         True = intersects ROI
