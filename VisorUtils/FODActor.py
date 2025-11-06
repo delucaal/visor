@@ -15,7 +15,7 @@ import vtk
 import numpy as np
 
 class visorFODActor(vtk.vtkActor):
-    odf_data = 0;
+    odf_data = 0
     master_actor = 0
     can_update_rendering = 1
         
@@ -25,25 +25,27 @@ class visorFODActor(vtk.vtkActor):
         self.my_vs = [1,1,1]
         
     def setTargetVoxelSize(self,voxelsize=[1,1,1]):
-        self.target_vs = voxelsize;
+        self.target_vs = voxelsize
         
     def loadFile(self,filename):
         self.ReferenceFile = filename
         
-        orig_data = nib.load(filename);
+        orig_data = nib.load(filename)
 
-        self.odf_data = orig_data.get_data();
+        self.odf_data = orig_data.get_fdata()
         self.my_vs = np.diag(orig_data.affine)
+        self.target_vs = self.my_vs
+        self.origin = orig_data.affine[0:3,3]
         
         self.sphere = get_sphere('symmetric362')
-        # self.scale = np.array([3, 3, 3]);
-        self.scale = np.diag(orig_data.affine)
+        self.scale = np.array([1, 1, 1])
+        #self.scale = np.diag(orig_data.affine)
         
     def setZValue(self,the_slice):
-        self.which_slice = the_slice;
+        self.which_slice = the_slice
 
     def setRenderer(self,the_renderer):
-        self.renderer = the_renderer;
+        self.renderer = the_renderer
 
     def displayAxialFODs(self,which_slice,subsamp_fac=2):
         print('displayAxialFODs ' + str(which_slice))
@@ -52,7 +54,7 @@ class visorFODActor(vtk.vtkActor):
         #     return
         self.can_update_rendering = 0
         if(type(which_slice) is tuple):
-            subsamp_fac = which_slice[1]
+            subsamp_fac = 1#which_slice[1]
             which_slice = which_slice[0]
             print('Unpacking tuples: subsamp is ' + str(subsamp_fac) + ' in slice ' + str(which_slice))
         # if(self.master_actor != 0):
@@ -74,7 +76,7 @@ class visorFODActor(vtk.vtkActor):
             print('Cannot select this slice')
             return
         
-        sf_proj = shm.sh_to_sf(self.odf_data[:,:,which_slice:which_slice+1,:],self.sphere,Lmax)
+        sf_proj = shm.sh_to_sf(self.odf_data[:,:,which_slice:which_slice+1,:],self.sphere,Lmax,basis_type='tournier07')
         print(sf_proj.shape)
         
         sf_proj = sf_proj/np.max([sf_proj.max(),1]);
@@ -88,29 +90,30 @@ class visorFODActor(vtk.vtkActor):
                     continue
                 
                 c_pdata = vtk.vtkPolyData()
-                vertices = self.sphere.vertices.copy();
-                colors = vertices.copy()*255;
+                vertices = self.sphere.vertices.copy()
+                vertices = vertices/vertices.max()
+                colors = vertices.copy()*255
                 for i in range(0,3):
                     vertices[:,i] = vertices[:,i]*S
-                vertices[:,0] = vertices[:,0]*subsamp_fac*self.scale[0]+vid_x*self.my_vs[0]
-                vertices[:,1] = vertices[:,1]*subsamp_fac*self.scale[1]+vid_y*self.my_vs[1];
-                vertices[:,2] = vertices[:,2]*subsamp_fac*self.scale[2]+which_slice*self.my_vs[2];
+                vertices[:,0] = vertices[:,0]*subsamp_fac*self.scale[0]+vid_x*self.my_vs[0]+self.origin[0]
+                vertices[:,1] = vertices[:,1]*subsamp_fac*self.scale[1]+vid_y*self.my_vs[1]+self.origin[1]
+                vertices[:,2] = vertices[:,2]*subsamp_fac*self.scale[2]+which_slice*self.my_vs[2]+self.origin[2]
                     
-                utils.set_polydata_vertices(c_pdata,vertices);
-                utils.set_polydata_triangles(c_pdata,self.sphere.faces);
-                utils.set_polydata_colors(c_pdata,colors);
+                utils.set_polydata_vertices(c_pdata,vertices)
+                utils.set_polydata_triangles(c_pdata,self.sphere.faces)
+                utils.set_polydata_colors(c_pdata,colors)
                         
                 self.master_actor.AddInputData(c_pdata)
 
         # odf_actor = utils.get_actor_from_polydata(master_actor);#vtk.vtkRenderer()
         # cleanFilter = vtk.vtkCleanPolyData()
         # cleanFilter.SetInputConnection(self.master_actor.GetOutputPort())
-        mapper = vtk.vtkPolyDataMapper();
+        mapper = vtk.vtkPolyDataMapper()
         # mapper.SetInputConnection(cleanFilter.GetOutputPort())
         mapper.SetInputConnection(self.master_actor.GetOutputPort())
 
         self.SetMapper(mapper)
         self.can_update_rendering = 1
         self.Modified()
-        # self.renderer.Render()
+        self.renderer.Render()
 

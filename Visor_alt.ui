@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>834</width>
-    <height>688</height>
+    <width>1512</width>
+    <height>870</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -69,7 +69,7 @@
        </font>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>3</number>
       </property>
       <widget class="QWidget" name="generalVolumesTab">
        <attribute name="title">
@@ -398,7 +398,7 @@
          <enum>Qt::Horizontal</enum>
         </property>
        </widget>
-       <widget class="QCheckBox" name="axialImageCheckBox_2">
+       <widget class="QCheckBox" name="coronalImageCheckBox">
         <property name="geometry">
          <rect>
           <x>70</x>
@@ -419,7 +419,7 @@
          <bool>true</bool>
         </property>
        </widget>
-       <widget class="QCheckBox" name="axialImageCheckBox_3">
+       <widget class="QCheckBox" name="sagittalImageCheckBox">
         <property name="geometry">
          <rect>
           <x>130</x>
@@ -490,6 +490,12 @@
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>300</height>
+           </size>
+          </property>
          </widget>
         </item>
         <item>
@@ -498,19 +504,28 @@
            <bool>true</bool>
           </property>
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="MinimumExpanding">
+           <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
           <property name="minimumSize">
            <size>
-            <width>0</width>
+            <width>50</width>
             <height>200</height>
            </size>
           </property>
+          <property name="baseSize">
+           <size>
+            <width>50</width>
+            <height>50</height>
+           </size>
+          </property>
           <property name="currentIndex">
-           <number>1</number>
+           <number>0</number>
+          </property>
+          <property name="usesScrollButtons">
+           <bool>false</bool>
           </property>
           <widget class="QWidget" name="generalPropertiesTab">
            <property name="minimumSize">
@@ -526,7 +541,7 @@
             <property name="geometry">
              <rect>
               <x>20</x>
-              <y>10</y>
+              <y>0</y>
               <width>141</width>
               <height>17</height>
              </rect>
@@ -544,7 +559,7 @@
             <property name="geometry">
              <rect>
               <x>20</x>
-              <y>30</y>
+              <y>20</y>
               <width>141</width>
               <height>17</height>
              </rect>
@@ -562,7 +577,7 @@
             <property name="geometry">
              <rect>
               <x>10</x>
-              <y>50</y>
+              <y>40</y>
               <width>151</width>
               <height>23</height>
              </rect>
@@ -585,47 +600,46 @@
              <bool>false</bool>
             </property>
            </widget>
-           <widget class="QLabel" name="label_6">
-            <property name="geometry">
-             <rect>
-              <x>40</x>
-              <y>80</y>
-              <width>91</width>
-              <height>20</height>
-             </rect>
-            </property>
-            <property name="font">
-             <font>
-              <pointsize>11</pointsize>
-             </font>
-            </property>
-            <property name="text">
-             <string>Transparency</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignCenter</set>
-            </property>
-           </widget>
-           <widget class="QSlider" name="tractColAlphaSlider">
+           <widget class="QPushButton" name="clipCoronalButton">
             <property name="geometry">
              <rect>
               <x>10</x>
-              <y>90</y>
-              <width>141</width>
-              <height>22</height>
+              <y>130</y>
+              <width>51</width>
+              <height>26</height>
              </rect>
             </property>
-            <property name="maximum">
-             <number>255</number>
-            </property>
-            <property name="value">
-             <number>255</number>
-            </property>
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
+            <property name="text">
+             <string>Coron.</string>
             </property>
            </widget>
-           <widget class="QLabel" name="label_11">
+           <widget class="QPushButton" name="clipSagittalButton">
+            <property name="geometry">
+             <rect>
+              <x>60</x>
+              <y>130</y>
+              <width>51</width>
+              <height>26</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Sagit.</string>
+            </property>
+           </widget>
+           <widget class="QPushButton" name="clipAxialButton">
+            <property name="geometry">
+             <rect>
+              <x>110</x>
+              <y>130</y>
+              <width>51</width>
+              <height>26</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Axial</string>
+            </property>
+           </widget>
+           <widget class="QLabel" name="label_13">
             <property name="geometry">
              <rect>
               <x>50</x>
@@ -640,17 +654,30 @@
              </font>
             </property>
             <property name="text">
-             <string>Thickness</string>
+             <string>2D clipping</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
             </property>
            </widget>
-           <widget class="QSlider" name="tractThickSlider">
+           <widget class="QPushButton" name="disableClipButton">
             <property name="geometry">
              <rect>
               <x>10</x>
-              <y>120</y>
+              <y>160</y>
+              <width>151</width>
+              <height>21</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Disable</string>
+            </property>
+           </widget>
+           <widget class="QSlider" name="clipThickSlider">
+            <property name="geometry">
+             <rect>
+              <x>10</x>
+              <y>200</y>
               <width>141</width>
               <height>22</height>
              </rect>
@@ -668,6 +695,76 @@
              <enum>Qt::Horizontal</enum>
             </property>
            </widget>
+           <widget class="QLabel" name="label_14">
+            <property name="geometry">
+             <rect>
+              <x>10</x>
+              <y>190</y>
+              <width>151</width>
+              <height>20</height>
+             </rect>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>11</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>Clipping thickness</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+           <widget class="QSlider" name="subsamplingSlider">
+            <property name="geometry">
+             <rect>
+              <x>10</x>
+              <y>90</y>
+              <width>141</width>
+              <height>22</height>
+             </rect>
+            </property>
+            <property name="minimum">
+             <number>0</number>
+            </property>
+            <property name="maximum">
+             <number>16</number>
+            </property>
+            <property name="value">
+             <number>1</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="tickPosition">
+             <enum>QSlider::TicksBelow</enum>
+            </property>
+            <property name="tickInterval">
+             <number>1</number>
+            </property>
+           </widget>
+           <widget class="QLabel" name="label_18">
+            <property name="geometry">
+             <rect>
+              <x>10</x>
+              <y>70</y>
+              <width>151</width>
+              <height>20</height>
+             </rect>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>11</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>Subsampling</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
           </widget>
           <widget class="QWidget" name="tab">
            <property name="minimumSize">
@@ -677,13 +774,13 @@
             </size>
            </property>
            <attribute name="title">
-            <string>Tract color light</string>
+            <string>Color</string>
            </attribute>
            <widget class="QSlider" name="tractColRedSlider">
             <property name="geometry">
              <rect>
               <x>10</x>
-              <y>20</y>
+              <y>30</y>
               <width>141</width>
               <height>22</height>
              </rect>
@@ -699,7 +796,7 @@
             <property name="geometry">
              <rect>
               <x>10</x>
-              <y>40</y>
+              <y>50</y>
               <width>141</width>
               <height>22</height>
              </rect>
@@ -715,7 +812,7 @@
             <property name="geometry">
              <rect>
               <x>10</x>
-              <y>60</y>
+              <y>70</y>
               <width>141</width>
               <height>22</height>
              </rect>
@@ -727,34 +824,13 @@
              <enum>Qt::Horizontal</enum>
             </property>
            </widget>
-           <widget class="QLabel" name="label_3">
-            <property name="geometry">
-             <rect>
-              <x>40</x>
-              <y>10</y>
-              <width>91</width>
-              <height>20</height>
-             </rect>
-            </property>
-            <property name="font">
-             <font>
-              <pointsize>11</pointsize>
-             </font>
-            </property>
-            <property name="text">
-             <string>Color by RGB</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignCenter</set>
-            </property>
-           </widget>
            <widget class="QPushButton" name="pushButton_3">
             <property name="geometry">
              <rect>
               <x>10</x>
-              <y>110</y>
+              <y>130</y>
               <width>151</width>
-              <height>23</height>
+              <height>31</height>
              </rect>
             </property>
             <property name="font">
@@ -770,9 +846,9 @@
             <property name="geometry">
              <rect>
               <x>10</x>
-              <y>80</y>
+              <y>100</y>
               <width>151</width>
-              <height>23</height>
+              <height>31</height>
              </rect>
             </property>
             <property name="font">
@@ -784,15 +860,298 @@
              <string>Color by direction</string>
             </property>
            </widget>
+           <widget class="QCheckBox" name="checkBox_7">
+            <property name="geometry">
+             <rect>
+              <x>30</x>
+              <y>10</y>
+              <width>111</width>
+              <height>20</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Solid RGB color</string>
+            </property>
+           </widget>
+           <widget class="QSlider" name="tractColAlphaSlider">
+            <property name="geometry">
+             <rect>
+              <x>20</x>
+              <y>180</y>
+              <width>141</width>
+              <height>22</height>
+             </rect>
+            </property>
+            <property name="maximum">
+             <number>255</number>
+            </property>
+            <property name="value">
+             <number>255</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+           <widget class="QLabel" name="label_6">
+            <property name="geometry">
+             <rect>
+              <x>40</x>
+              <y>170</y>
+              <width>91</width>
+              <height>20</height>
+             </rect>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>11</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>Tract opacity</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+           <widget class="QLabel" name="label_11">
+            <property name="geometry">
+             <rect>
+              <x>20</x>
+              <y>200</y>
+              <width>131</width>
+              <height>20</height>
+             </rect>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>11</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>Tract thickness</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+           <widget class="QSlider" name="tractThickSlider">
+            <property name="geometry">
+             <rect>
+              <x>20</x>
+              <y>210</y>
+              <width>141</width>
+              <height>22</height>
+             </rect>
+            </property>
+            <property name="minimum">
+             <number>2</number>
+            </property>
+            <property name="maximum">
+             <number>10</number>
+            </property>
+            <property name="value">
+             <number>2</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+           <widget class="QLabel" name="label_15">
+            <property name="geometry">
+             <rect>
+              <x>150</x>
+              <y>30</y>
+              <width>31</width>
+              <height>20</height>
+             </rect>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>11</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>R</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+           <widget class="QLabel" name="label_16">
+            <property name="geometry">
+             <rect>
+              <x>150</x>
+              <y>50</y>
+              <width>31</width>
+              <height>20</height>
+             </rect>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>11</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>G</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+           <widget class="QLabel" name="label_17">
+            <property name="geometry">
+             <rect>
+              <x>150</x>
+              <y>70</y>
+              <width>31</width>
+              <height>20</height>
+             </rect>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>11</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>B</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+           <widget class="QLabel" name="label_12">
+            <property name="geometry">
+             <rect>
+              <x>60</x>
+              <y>230</y>
+              <width>71</width>
+              <height>16</height>
+             </rect>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>11</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>Material</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+           <widget class="QComboBox" name="comboBox">
+            <property name="geometry">
+             <rect>
+              <x>20</x>
+              <y>250</y>
+              <width>141</width>
+              <height>21</height>
+             </rect>
+            </property>
+           </widget>
+          </widget>
+          <widget class="QWidget" name="tab_3">
+           <attribute name="title">
+            <string>Effects</string>
+           </attribute>
+           <widget class="QScrollArea" name="scrollArea">
+            <property name="geometry">
+             <rect>
+              <x>-1</x>
+              <y>-1</y>
+              <width>171</width>
+              <height>291</height>
+             </rect>
+            </property>
+            <property name="widgetResizable">
+             <bool>true</bool>
+            </property>
+            <widget class="QWidget" name="scrollAreaWidgetContents">
+             <property name="geometry">
+              <rect>
+               <x>0</x>
+               <y>0</y>
+               <width>167</width>
+               <height>287</height>
+              </rect>
+             </property>
+             <widget class="QCheckBox" name="checkBox">
+              <property name="geometry">
+               <rect>
+                <x>10</x>
+                <y>10</y>
+                <width>85</width>
+                <height>20</height>
+               </rect>
+              </property>
+              <property name="text">
+               <string>Ambient light</string>
+              </property>
+             </widget>
+             <widget class="QCheckBox" name="checkBox_3">
+              <property name="geometry">
+               <rect>
+                <x>10</x>
+                <y>50</y>
+                <width>85</width>
+                <height>20</height>
+               </rect>
+              </property>
+              <property name="text">
+               <string>FXAA</string>
+              </property>
+             </widget>
+             <widget class="QCheckBox" name="checkBox_4">
+              <property name="geometry">
+               <rect>
+                <x>10</x>
+                <y>70</y>
+                <width>101</width>
+                <height>20</height>
+               </rect>
+              </property>
+              <property name="text">
+               <string>Depth peeling</string>
+              </property>
+             </widget>
+             <widget class="QCheckBox" name="checkBox_5">
+              <property name="geometry">
+               <rect>
+                <x>10</x>
+                <y>90</y>
+                <width>101</width>
+                <height>20</height>
+               </rect>
+              </property>
+              <property name="text">
+               <string>Depth peeling</string>
+              </property>
+             </widget>
+             <widget class="QCheckBox" name="checkBox_6">
+              <property name="geometry">
+               <rect>
+                <x>10</x>
+                <y>30</y>
+                <width>85</width>
+                <height>20</height>
+               </rect>
+              </property>
+              <property name="text">
+               <string>Specular light</string>
+              </property>
+             </widget>
+            </widget>
+           </widget>
           </widget>
          </widget>
         </item>
        </layout>
        <zorder>tractPropertiesContainer</zorder>
-       <zorder>loadSingleTract</zorder>
-       <zorder>loadAllTracts</zorder>
        <zorder>deleteAllTracts</zorder>
        <zorder>tractsList</zorder>
+       <zorder>loadSingleTract</zorder>
+       <zorder>loadAllTracts</zorder>
       </widget>
       <widget class="QWidget" name="fodTab">
        <attribute name="title">
@@ -916,6 +1275,161 @@
          <string>Add sphere ROI</string>
         </property>
        </widget>
+       <widget class="QSlider" name="ROI_X_Slider">
+        <property name="geometry">
+         <rect>
+          <x>20</x>
+          <y>310</y>
+          <width>131</width>
+          <height>21</height>
+         </rect>
+        </property>
+        <property name="minimum">
+         <number>-2500</number>
+        </property>
+        <property name="maximum">
+         <number>2500</number>
+        </property>
+        <property name="singleStep">
+         <number>1</number>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+       <widget class="QSlider" name="ROI_Y_Slider">
+        <property name="geometry">
+         <rect>
+          <x>20</x>
+          <y>340</y>
+          <width>131</width>
+          <height>21</height>
+         </rect>
+        </property>
+        <property name="minimum">
+         <number>-2500</number>
+        </property>
+        <property name="maximum">
+         <number>2500</number>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+       <widget class="QSlider" name="ROI_Z_Slider">
+        <property name="geometry">
+         <rect>
+          <x>20</x>
+          <y>370</y>
+          <width>131</width>
+          <height>21</height>
+         </rect>
+        </property>
+        <property name="minimum">
+         <number>-2500</number>
+        </property>
+        <property name="maximum">
+         <number>2500</number>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+       <widget class="QLineEdit" name="ROI_X_Text">
+        <property name="geometry">
+         <rect>
+          <x>160</x>
+          <y>310</y>
+          <width>21</width>
+          <height>20</height>
+         </rect>
+        </property>
+       </widget>
+       <widget class="QLineEdit" name="ROI_Y_Text">
+        <property name="geometry">
+         <rect>
+          <x>160</x>
+          <y>340</y>
+          <width>21</width>
+          <height>20</height>
+         </rect>
+        </property>
+       </widget>
+       <widget class="QLineEdit" name="ROI_Z_Text">
+        <property name="geometry">
+         <rect>
+          <x>160</x>
+          <y>370</y>
+          <width>21</width>
+          <height>20</height>
+         </rect>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="deleteROIButton">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>270</y>
+          <width>176</width>
+          <height>23</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>11</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Delete ROI</string>
+        </property>
+       </widget>
+       <widget class="QSlider" name="ROI_Size_Slider">
+        <property name="geometry">
+         <rect>
+          <x>20</x>
+          <y>400</y>
+          <width>131</width>
+          <height>20</height>
+         </rect>
+        </property>
+        <property name="maximum">
+         <number>150</number>
+        </property>
+        <property name="value">
+         <number>1</number>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+       <widget class="QLineEdit" name="ROI_Size_Text">
+        <property name="geometry">
+         <rect>
+          <x>160</x>
+          <y>400</y>
+          <width>21</width>
+          <height>20</height>
+         </rect>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="toggleROIButton">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>430</y>
+          <width>176</width>
+          <height>23</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>11</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Toggle ROI</string>
+        </property>
+       </widget>
       </widget>
      </widget>
     </item>
@@ -926,8 +1440,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>834</width>
-     <height>37</height>
+     <width>1512</width>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

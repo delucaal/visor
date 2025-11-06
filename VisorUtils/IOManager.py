@@ -19,7 +19,7 @@ from vtk.util.numpy_support import vtk_to_numpy
 class VisorIO(object):
     
     @staticmethod
-    def LoadMATTractography(filename,max_tracts=1e10):
+    def LoadMATTractography(filename,max_tracts=1e10,affine=None):
         t = time.time()
         MatFile = read_mat(filename,variable_names=['Tracts','TractMask','VDims']);
         elapsed = time.time() - t
@@ -29,28 +29,30 @@ class VisorIO(object):
         Tracts = MatFile['Tracts']#np.asarray(MatFile['Tracts']);
         TractMask = MatFile['TractMask']
         VD = MatFile['VDims']        
-        
+        Shift = affine[0:3,-1]
         # for i in range(0,min(Tracts.shape[0],max_tracts)):
         for i in range(0,min(len(Tracts),max_tracts)):
             P = Tracts[i]
             # P[:,0] = TractMask.shape[0]*VD[1]-P[:,0]
             # P[:,1] = TractMask.shape[1]*VD[0]-P[:,1]
-            P[:,0] = TractMask.shape[0]*VD[0] - P[:,0]#/VD[0] 
-            P[:,1] = TractMask.shape[1]*VD[1] - P[:,1]#/VD[1] 
-            P[:,2] = P[:,2]#/VD[2]
+            P[:,0] = Shift[1]-P[:,0]+TractMask.shape[1]*VD[1] 
+            P[:,1] = Shift[0]-P[:,1]+TractMask.shape[0]*VD[0] 
+            P[:,2] = Shift[2]+P[:,2]
             Tracts[i] = P
         
         return Tracts
     
     @staticmethod
-    def LoadTRKTractography(filename,max_tracts=1e10,affine=None,size4centering=None):
+    def LoadTRKTractography(filename,max_tracts=1e10,affine=None,size4centering=None,downsampling_factor=128):
         Tractogram = load_tractogram(filename,filename)
         
-        Tracts = Tractogram.streamlines
+        Tracts = Tractogram.streamlines[0:downsampling_factor:,:]
         VD = np.diag(Tractogram.affine)[0:3]
             
         if(affine is None):
-            Shift = [0,0,0]    
+            Shift = [0,0,0]
+        else:
+            Shift = [0,0,0]#Tractogram.affine[0:3,-1]    
         # for i in range(0,min(Tracts.shape[0],max_tracts)):
         for i in range(0,min(len(Tracts),max_tracts)):
             P = Tracts[i]
