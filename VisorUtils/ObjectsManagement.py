@@ -11,6 +11,7 @@ class ObjectsManager(object):
     fod_list = []
     images_list = []
     rois_list = []
+    rois_groups_list = []
 
     @staticmethod
     def RemoveTractographyObjects():
@@ -18,6 +19,7 @@ class ObjectsManager(object):
         ObjectsManager.actors_list = []
         ObjectsManager.rois_list = []
         ObjectsManager.tracts_list = []
+        ObjectsManager.rois_groups_list = []
 
     @staticmethod
     def AddFODObject(theObject):
@@ -52,6 +54,15 @@ class ObjectsManager(object):
                 idx = i
                 break
         return idx
+    
+    @staticmethod
+    def IndexOfROIGroupObject(theName):
+        idx = -1
+        for i in range(0,len(ObjectsManager.rois_groups_list)):
+            if(ObjectsManager.rois_groups_list[i].name == theName):
+                idx = i
+                break
+        return idx
             
     @staticmethod
     def AddImageObject(theImage):
@@ -77,3 +88,12 @@ class ObjectsManager(object):
                 idx = i
                 break
         return idx
+    
+    @staticmethod
+    def AddROIGroupObject(theGroup):
+        ObjectsManager.rois_groups_list.append(theGroup)
+        
+    @staticmethod
+    def RemoveROIGroupObject(zin):
+        ObjectsManager.rois_groups_list.remove(ObjectsManager.rois_groups_list[zin])
+    

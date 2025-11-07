@@ -78,6 +78,12 @@ class ROIObject(object):
          
     def ToggleEnabled(self):
         self.enabled = not self.enabled        
+        
+class ROIgroupsObject(object):
+    def __init__(self, name='Group'):
+        self.name = name
+        self.rois_list = []
+        self.target_tracts = []
                  
 class ImageObject(object):
         
@@ -168,6 +174,7 @@ class TractographyObject(object):
         self.original_colors.DeepCopy(self.data.GetPointData().GetScalars())
         
         self.mask = None
+        self.ROIs = []
         
     def PreparePolydataGivenPointsAndLines_fast(self,Tracts, color_mode=0, my_color=[255,255,255], max_tracts=1e5):
         n_tracts = min(len(Tracts), int(max_tracts))
@@ -256,6 +263,22 @@ class TractographyObject(object):
 
         return data
         
+    def AddROI(self,roi):
+        self.ROIs.append(roi)
+        
+    def IndexOfROIByName(self,name):
+        idx = -1
+        for i in range(0,len(self.ROIs)):
+            if(self.ROIs[i].Name == name):
+                idx = i
+                break
+        return idx
+    
+    def DeleteROIByName(self,name):
+        idx = self.IndexOfROIByName(name)
+        if(idx != -1):
+            self.ROIs.pop(idx)
+        
     def PreparePolydataGivenPointsAndLines(self,Tracts,color_mode=0,my_color=[255,255,255],max_tracts=1e5):
         points = vtk.vtkPoints()
         lines = vtk.vtkCellArray()
@@ -332,7 +355,7 @@ class TractographyObject(object):
         return data
     
     def color_tracts_by_roi_intersection_transformed(self, 
-                                                    rois_list,
+                                                    rois_list=None,
                                                     intersect_color=(1,0,0),
                                                     alpha_outside=0.1):
         """
@@ -353,6 +376,9 @@ class TractographyObject(object):
         alpha_outside : float
             Opacity for non-intersecting tracts (0-1).
         """
+        
+        if(rois_list is None):
+            rois_list = self.ROIs or []
 
         enc = vtk.vtkSelectEnclosedPoints()
         #enc.SetInputConnection(self.test_line_source.GetOutputPort())
@@ -404,6 +430,9 @@ class TractographyObject(object):
         tracts = self.data
         n_cells = tracts.GetNumberOfCells()
         LineSelector = np.ones(n_cells, dtype=bool)
+
+        if(rois_list is None):
+            rois_list = self.ROIs or []
 
         # Transform fibers globally
         transf = vtk.vtkTransform()

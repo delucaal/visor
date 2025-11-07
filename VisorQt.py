@@ -110,6 +110,8 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.roiYSlider = self.findChild(QtWidgets.QSlider,'ROI_Y_Slider')
         self.roiZSlider = self.findChild(QtWidgets.QSlider,'ROI_Z_Slider')
         self.roiSizeSlider = self.findChild(QtWidgets.QSlider,'ROI_Size_Slider')
+        
+        self.ROIsTreeWidget = self.findChild(QtWidgets.QTreeWidget,'ROIsTreeWidget')
         #self.tractPropertiesContainer.setVisible(False)
         
     def _link_qt_actions(self):
@@ -224,7 +226,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         #scene_light.SetFocalPoint(0, 0, 0)
         #self.scene.AddLight(scene_light)         
         
-        self._add_sphere_roi(0)
+        #self._add_sphere_roi(0)
         #self._add_sphere_roi(0)
         #points = vtk.vtkPoints()
         #lines = vtk.vtkCellArray()
@@ -277,6 +279,8 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.scene.SetActiveCamera(camera)
         self.scene.ResetCameraClippingRange()  # adjust near/far planes
         #self.scene.AddActor(axes)
+        
+        self.ROIsTreeWidget.addTopLevelItem(QtWidgets.QTreeWidgetItem(["Unassigned ROIs"]))
                 
     def _interactor_camera(self):
         self.style = vtk.vtkInteractorStyleTrackballCamera()
@@ -411,6 +415,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         ObjectsManager.AddROIObject(O)
         ROI_Name = O.Name + ' (Disabled)'
         self.roiListWidget.addItem(ROI_Name)
+        self.ROIsTreeWidget.topLevelItem(0).addChild(QtWidgets.QTreeWidgetItem([O.Name]))
         self.iren.Render()
         
     def _roi_clicked(self,_item):
@@ -644,19 +649,47 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         if(len(ObjectsManager.rois_list) > 0):
             self.scene.RemoveActor(ObjectsManager.rois_list[self.troiListWidget.currentRow()].actor)            
             ObjectsManager.RemoveROIObject(self.troiListWidget.currentRow())
+        self.ApplyROIsToTracts()
 
     def _toggle_ROI_button(self,_button):
         ObjectsManager.rois_list[self.roiListWidget.currentRow()].ToggleEnabled()
         if(ObjectsManager.rois_list[self.roiListWidget.currentRow()].enabled):
-            self.roisListWidget.currentItem().setText(ObjectsManager.rois_list[self.roiListWidget.currentRow()].Name + ' (Enabled)' )
+            # Activate the ROI and add it to the tract
+            self.roisListWidget.currentItem().setText(ObjectsManager.rois_list[self.roiListWidget.currentRow()].Name + ' (Enabled)' )                      
+            # First remove ROI from unassigned. Then, locate tract in tree top level widgets first, then add this children
+            topLevelItem = self.ROIsTreeWidget.topLevelItem(0)
+            for j in range(topLevelItem.childCount()):
+                childItem = topLevelItem.child(j)
+                if(childItem.text(0) == ObjectsManager.rois_list[self.roisListWidget.currentRow()].Name):
+                    topLevelItem.removeChild(childItem)
+                    break
+            # Now add it to the right tract top item
+            for i in range(1,self.ROIsTreeWidget.topLevelItemCount()):
+                topLevelItem = self.ROIsTreeWidget.topLevelItem(i)       
+                if(topLevelItem.text(0) == self.tractsListWidget.currentItem().text()):
+                    topLevelItem.addChild(childItem) 
+                    break                                                      
+            ObjectsManager.tracts_list[self.tractsListWidget.currentRow()].AddROI(ObjectsManager.rois_list[self.roiListWidget.currentRow()])
         else:
             self.roisListWidget.currentItem().setText(ObjectsManager.rois_list[self.roiListWidget.currentRow()].Name + ' (Disabled)' )
+            # Locate tract in tree top level widgets first, then look for this children and remove it
+            # Deactivate the ROI and remove it from the tract
+            for i in range(self.ROIsTreeWidget.topLevelItemCount()):
+                topLevelItem = self.ROIsTreeWidget.topLevelItem(i)
+                if(topLevelItem.text(0) == self.tractsListWidget.currentItem().text()):
+                    for j in range(topLevelItem.childCount()):
+                        childItem = topLevelItem.child(j)
+                        if(childItem.text(0) == ObjectsManager.rois_list[self.roisListWidget.currentRow()].Name):
+                            topLevelItem.removeChild(childItem)
+                            self.ROIsTreeWidget.topLevelItem(0).addChild(childItem) # Unassigned
+                            break
+            ObjectsManager.tracts_list[self.tractsListWidget.currentRow()].DeleteROIByName(ObjectsManager.rois_list[self.roiListWidget.currentRow()].Name)
         self.ApplyROIsToTracts()
 
     def ApplyROIsToTracts(self):
         for tract in ObjectsManager.tracts_list:
             tract.color_tracts_by_roi_intersection_optimized(
-                rois_list = ObjectsManager.rois_list,
+                rois_list = None, #ObjectsManager.rois_list,
                 #intersect_color = (1,0,0),
                 alpha_outside = 0.3
             )
@@ -880,6 +913,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         filename = filename.split('/')       
                             
         self.tractsListWidget.addItem(filename[-1])
+        self.ROIsTreeWidget.addTopLevelItem(QtWidgets.QTreeWidgetItem([filename[-1]]))
 
         self.iren.Render()
         print('Done')

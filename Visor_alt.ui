@@ -1285,10 +1285,10 @@
          </rect>
         </property>
         <property name="minimum">
-         <number>-25000</number>
+         <number>-75000</number>
         </property>
         <property name="maximum">
-         <number>25000</number>
+         <number>75000</number>
         </property>
         <property name="singleStep">
          <number>1</number>
@@ -1307,10 +1307,10 @@
          </rect>
         </property>
         <property name="minimum">
-         <number>-25000</number>
+         <number>-75000</number>
         </property>
         <property name="maximum">
-         <number>25000</number>
+         <number>75000</number>
         </property>
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
@@ -1326,10 +1326,10 @@
          </rect>
         </property>
         <property name="minimum">
-         <number>-25000</number>
+         <number>-75000</number>
         </property>
         <property name="maximum">
-         <number>25000</number>
+         <number>75000</number>
         </property>
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
@@ -1429,6 +1429,26 @@
         <property name="text">
          <string>Toggle ROI</string>
         </property>
+       </widget>
+       <widget class="QTreeWidget" name="ROIsTreeWidget">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>470</y>
+          <width>181</width>
+          <height>301</height>
+         </rect>
+        </property>
+        <column>
+         <property name="text">
+          <string>Name</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Type</string>
+         </property>
+        </column>
        </widget>
       </widget>
      </widget>
