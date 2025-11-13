@@ -69,7 +69,7 @@
        </font>
       </property>
       <property name="currentIndex">
-       <number>3</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="generalVolumesTab">
        <attribute name="title">
@@ -555,29 +555,11 @@
              <string>Highlight selected</string>
             </property>
            </widget>
-           <widget class="QCheckBox" name="checkBox_2">
-            <property name="geometry">
-             <rect>
-              <x>20</x>
-              <y>20</y>
-              <width>141</width>
-              <height>17</height>
-             </rect>
-            </property>
-            <property name="font">
-             <font>
-              <pointsize>11</pointsize>
-             </font>
-            </property>
-            <property name="text">
-             <string>Hide non-selected</string>
-            </property>
-           </widget>
            <widget class="QPushButton" name="deleteOneTractButton">
             <property name="geometry">
              <rect>
               <x>10</x>
-              <y>40</y>
+              <y>20</y>
               <width>151</width>
               <height>23</height>
              </rect>
@@ -683,10 +665,10 @@
              </rect>
             </property>
             <property name="minimum">
-             <number>2</number>
+             <number>0</number>
             </property>
             <property name="maximum">
-             <number>10</number>
+             <number>100</number>
             </property>
             <property name="value">
              <number>2</number>
@@ -748,7 +730,7 @@
             <property name="geometry">
              <rect>
               <x>10</x>
-              <y>70</y>
+              <y>80</y>
               <width>151</width>
               <height>20</height>
              </rect>
@@ -763,6 +745,99 @@
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+           <widget class="QPushButton" name="hideShowAllTractsButton">
+            <property name="geometry">
+             <rect>
+              <x>10</x>
+              <y>50</y>
+              <width>151</width>
+              <height>23</height>
+             </rect>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>11</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>Hide/Show all tracts</string>
+            </property>
+            <property name="autoDefault">
+             <bool>false</bool>
+            </property>
+            <property name="default">
+             <bool>false</bool>
+            </property>
+            <property name="flat">
+             <bool>false</bool>
+            </property>
+           </widget>
+           <widget class="QSlider" name="xClipSlider">
+            <property name="geometry">
+             <rect>
+              <x>10</x>
+              <y>230</y>
+              <width>141</width>
+              <height>22</height>
+             </rect>
+            </property>
+            <property name="minimum">
+             <number>-100</number>
+            </property>
+            <property name="maximum">
+             <number>100</number>
+            </property>
+            <property name="value">
+             <number>0</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+           <widget class="QSlider" name="yClipSlider">
+            <property name="geometry">
+             <rect>
+              <x>10</x>
+              <y>260</y>
+              <width>141</width>
+              <height>22</height>
+             </rect>
+            </property>
+            <property name="minimum">
+             <number>-100</number>
+            </property>
+            <property name="maximum">
+             <number>100</number>
+            </property>
+            <property name="value">
+             <number>0</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+           <widget class="QSlider" name="zClipSlider">
+            <property name="geometry">
+             <rect>
+              <x>10</x>
+              <y>290</y>
+              <width>141</width>
+              <height>22</height>
+             </rect>
+            </property>
+            <property name="minimum">
+             <number>-100</number>
+            </property>
+            <property name="maximum">
+             <number>100</number>
+            </property>
+            <property name="value">
+             <number>0</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
             </property>
            </widget>
           </widget>
@@ -1275,96 +1350,6 @@
          <string>Add sphere ROI</string>
         </property>
        </widget>
-       <widget class="QSlider" name="ROI_X_Slider">
-        <property name="geometry">
-         <rect>
-          <x>20</x>
-          <y>310</y>
-          <width>131</width>
-          <height>21</height>
-         </rect>
-        </property>
-        <property name="minimum">
-         <number>-75000</number>
-        </property>
-        <property name="maximum">
-         <number>75000</number>
-        </property>
-        <property name="singleStep">
-         <number>1</number>
-        </property>
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-       </widget>
-       <widget class="QSlider" name="ROI_Y_Slider">
-        <property name="geometry">
-         <rect>
-          <x>20</x>
-          <y>340</y>
-          <width>131</width>
-          <height>21</height>
-         </rect>
-        </property>
-        <property name="minimum">
-         <number>-75000</number>
-        </property>
-        <property name="maximum">
-         <number>75000</number>
-        </property>
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-       </widget>
-       <widget class="QSlider" name="ROI_Z_Slider">
-        <property name="geometry">
-         <rect>
-          <x>20</x>
-          <y>370</y>
-          <width>131</width>
-          <height>21</height>
-         </rect>
-        </property>
-        <property name="minimum">
-         <number>-75000</number>
-        </property>
-        <property name="maximum">
-         <number>75000</number>
-        </property>
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-       </widget>
-       <widget class="QLineEdit" name="ROI_X_Text">
-        <property name="geometry">
-         <rect>
-          <x>160</x>
-          <y>310</y>
-          <width>21</width>
-          <height>20</height>
-         </rect>
-        </property>
-       </widget>
-       <widget class="QLineEdit" name="ROI_Y_Text">
-        <property name="geometry">
-         <rect>
-          <x>160</x>
-          <y>340</y>
-          <width>21</width>
-          <height>20</height>
-         </rect>
-        </property>
-       </widget>
-       <widget class="QLineEdit" name="ROI_Z_Text">
-        <property name="geometry">
-         <rect>
-          <x>160</x>
-          <y>370</y>
-          <width>21</width>
-          <height>20</height>
-         </rect>
-        </property>
-       </widget>
        <widget class="QPushButton" name="deleteROIButton">
         <property name="geometry">
          <rect>
@@ -1381,35 +1366,6 @@
         </property>
         <property name="text">
          <string>Delete ROI</string>
-        </property>
-       </widget>
-       <widget class="QSlider" name="ROI_Size_Slider">
-        <property name="geometry">
-         <rect>
-          <x>20</x>
-          <y>400</y>
-          <width>131</width>
-          <height>20</height>
-         </rect>
-        </property>
-        <property name="maximum">
-         <number>150</number>
-        </property>
-        <property name="value">
-         <number>1</number>
-        </property>
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-       </widget>
-       <widget class="QLineEdit" name="ROI_Size_Text">
-        <property name="geometry">
-         <rect>
-          <x>160</x>
-          <y>400</y>
-          <width>21</width>
-          <height>20</height>
-         </rect>
         </property>
        </widget>
        <widget class="QPushButton" name="toggleROIButton">
@@ -1449,6 +1405,103 @@
           <string>Type</string>
          </property>
         </column>
+       </widget>
+       <widget class="QLabel" name="label_4">
+        <property name="geometry">
+         <rect>
+          <x>60</x>
+          <y>290</y>
+          <width>81</width>
+          <height>21</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>10</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>X/Y/Z/Size</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+       <widget class="QSpinBox" name="XspinBox">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>310</y>
+          <width>42</width>
+          <height>22</height>
+         </rect>
+        </property>
+        <property name="minimum">
+         <number>-30000</number>
+        </property>
+        <property name="maximum">
+         <number>30000</number>
+        </property>
+        <property name="stepType">
+         <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
+        </property>
+       </widget>
+       <widget class="QSpinBox" name="YspinBox">
+        <property name="geometry">
+         <rect>
+          <x>50</x>
+          <y>310</y>
+          <width>42</width>
+          <height>22</height>
+         </rect>
+        </property>
+        <property name="minimum">
+         <number>-30000</number>
+        </property>
+        <property name="maximum">
+         <number>30000</number>
+        </property>
+        <property name="stepType">
+         <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
+        </property>
+       </widget>
+       <widget class="QSpinBox" name="ZspinBox">
+        <property name="geometry">
+         <rect>
+          <x>100</x>
+          <y>310</y>
+          <width>42</width>
+          <height>22</height>
+         </rect>
+        </property>
+        <property name="minimum">
+         <number>-30000</number>
+        </property>
+        <property name="maximum">
+         <number>30000</number>
+        </property>
+        <property name="stepType">
+         <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
+        </property>
+       </widget>
+       <widget class="QSpinBox" name="SspinBox">
+        <property name="geometry">
+         <rect>
+          <x>150</x>
+          <y>310</y>
+          <width>42</width>
+          <height>22</height>
+         </rect>
+        </property>
+        <property name="minimum">
+         <number>-30000</number>
+        </property>
+        <property name="maximum">
+         <number>30000</number>
+        </property>
+        <property name="stepType">
+         <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
+        </property>
        </widget>
       </widget>
      </widget>

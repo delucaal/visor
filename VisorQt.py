@@ -82,6 +82,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.volMinValEdit = self.findChild(QtWidgets.QLineEdit,'volMinValEdit')
         self.volMaxValEdit = self.findChild(QtWidgets.QLineEdit,'volMaxValEdit')
         self.fodSubsampSlider = self.findChild(QtWidgets.QSlider,'fodSubsampSlider')
+        self.tractsSubsamplingSlider = self.findChild(QtWidgets.QSlider,'subsamplingSlider')
         
         self.tractColRedSlider = self.findChild(QtWidgets.QSlider,'tractColRedSlider')
         self.tractColGreenSlider = self.findChild(QtWidgets.QSlider,'tractColGreenSlider')
@@ -89,10 +90,12 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.tractColAlphaSlider = self.findChild(QtWidgets.QSlider,'tractColAlphaSlider')
         self.tractThickSlider = self.findChild(QtWidgets.QSlider,'tractThickSlider')
         self.tractColDECButton = self.findChild(QtWidgets.QPushButton,'tractColDECButton')
-        
+        self.hideShowAllTractsButton = self.findChild(QtWidgets.QPushButton,'hideShowAllTractsButton')        
+        self.sphereROIButton = self.findChild(QtWidgets.QPushButton,'sphereROIButton')
+        self.clipThickSlider = self.findChild(QtWidgets.QSlider,'clipThickSlider')
+        self.zClipSlider = self.findChild(QtWidgets.QSlider,'zClipSlider')
         
         self.roiListWidget = self.findChild(QtWidgets.QListWidget,'ROIsListWidget')
-        self.sphereROIButton = self.findChild(QtWidgets.QPushButton,'sphereROIButton')
         
         self.volColormapBox = self.findChild(QtWidgets.QComboBox,'volColormapBox')
         
@@ -103,13 +106,11 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.coronalImageCheckBox = self.findChild(QtWidgets.QCheckBox,'coronalImageCheckBox')
         self.sagittalImageCheckBox = self.findChild(QtWidgets.QCheckBox,'sagittalImageCheckBox')
         self.highlightedOnlyCheckbox = self.findChild(QtWidgets.QCheckBox,'highlightedOnlyCheckbox')
-
-        self.tractsSubsamplingSlider = self.findChild(QtWidgets.QSlider,'subsamplingSlider')
         
-        self.roiXSlider = self.findChild(QtWidgets.QSlider,'ROI_X_Slider')
-        self.roiYSlider = self.findChild(QtWidgets.QSlider,'ROI_Y_Slider')
-        self.roiZSlider = self.findChild(QtWidgets.QSlider,'ROI_Z_Slider')
-        self.roiSizeSlider = self.findChild(QtWidgets.QSlider,'ROI_Size_Slider')
+        self.Xspinbox = self.findChild(QtWidgets.QSpinBox,'XspinBox')
+        self.Yspinbox = self.findChild(QtWidgets.QSpinBox,'YspinBox')
+        self.Zspinbox = self.findChild(QtWidgets.QSpinBox,'ZspinBox')
+        self.Sspinbox = self.findChild(QtWidgets.QSpinBox,'SspinBox')
         
         self.ROIsTreeWidget = self.findChild(QtWidgets.QTreeWidget,'ROIsTreeWidget')
         #self.tractPropertiesContainer.setVisible(False)
@@ -127,6 +128,8 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.sphereROIButton.clicked.connect(self._add_sphere_roi)
         self.deleteROIButton.clicked.connect(self._delete_ROI_button)
         self.toggleROIButton.clicked.connect(self._toggle_ROI_button)
+        self.hideShowAllTractsButton.clicked.connect(self._hide_show_all_tracts_button)
+        self.clipCoronalButton.clicked.connect(self._clip_coronal_button)
 
         self.tractsListWidget.itemClicked.connect(self._track_clicked)
         self.volumesListWidget.itemClicked.connect(self._volume_clicked)
@@ -152,6 +155,8 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.tractColBlueSlider.valueChanged.connect(self._tract_color_slider_changed)
         self.tractColAlphaSlider.valueChanged.connect(self._tract_thick_slider_changed)
         self.tractThickSlider.valueChanged.connect(self._tract_thick_slider_changed)
+        self.clipThickSlider.valueChanged.connect(self._clip_thickness_slider_moved)
+        self.zClipSlider.valueChanged.connect(self._z_clip_slider_moved)
         
         self.axialImageCheckBox.stateChanged.connect(self._axialimage_checkbox_state_changed)
         self.coronalImageCheckBox.stateChanged.connect(self._coronalimage_checkbox_state_changed)
@@ -160,10 +165,10 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         
         self.tractsSubsamplingSlider.valueChanged.connect(self._tracts_subsampling_slider_moved)
         
-        self.roiXSlider.valueChanged.connect(self._roi_x_slider_changed)
-        self.roiYSlider.valueChanged.connect(self._roi_y_slider_changed)
-        self.roiZSlider.valueChanged.connect(self._roi_z_slider_changed)
-        self.roiSizeSlider.valueChanged.connect(self._roi_size_slider_changed)
+        self.Xspinbox.valueChanged.connect(self._roi_x_slider_changed)
+        self.Yspinbox.valueChanged.connect(self._roi_y_slider_changed)
+        self.Zspinbox.valueChanged.connect(self._roi_z_slider_changed)
+        self.Sspinbox.valueChanged.connect(self._roi_size_slider_changed)
         
     def _setup_ui(self):
         print('_setup_ui')
@@ -191,6 +196,9 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.scene = vtk.vtkRenderer()
         self.vtkWidget.GetRenderWindow().AddRenderer(self.scene)
         self.scene.ResetCamera()
+        from vtkmodules.vtkRenderingOpenGL2 import vtkOpenGLRenderWindow
+        self.vtkWidget.GetRenderWindow().SetDebug(True)
+        self.scene.SetDebug(True)
         
         self.iren = self.vtkWidget.GetRenderWindow().GetInteractor()
         self.renderFrame.setLayout(self.vl)
@@ -351,7 +359,19 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
             self.current_actor_properties.DeepCopy(cR.actor.GetProperty())
         cR.actor.Modified()
         self.iren.Render()
-
+        
+    def _clip_thickness_slider_moved(self,_item):
+        print('_clip_thickness_slider_moved ' + str(self.clipThickSlider.value()))
+        for tract in ObjectsManager.tracts_list:
+            tract.FilterTractsByCoordinatesWithShaders(current_slice_pos=self.zClipSlider.value()/1e2, current_axis=2, current_slice_thickness=self.clipThickSlider.value()/1e2)
+        self.iren.Render()
+        
+    def _z_clip_slider_moved(self,_item):
+        print('_z_clip_slider_moved ' + str(self.zClipSlider.value()))
+        for tract in ObjectsManager.tracts_list:
+            tract.FilterTractsByCoordinatesWithShaders(current_slice_pos=self.zClipSlider.value()/1e2, current_axis=2, current_slice_thickness=self.clipThickSlider.value()/1e2)
+        self.iren.Render()
+                
     def _tracts_subsampling_slider_moved(self,_item):
         #print('_tracts_subsampling_slider_moved ' + str(self.tractsSubsamplingSlider.value()))
         cR = self.tractsListWidget.currentRow()
@@ -415,17 +435,17 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         ObjectsManager.AddROIObject(O)
         ROI_Name = O.Name + ' (Disabled)'
         self.roiListWidget.addItem(ROI_Name)
-        self.ROIsTreeWidget.topLevelItem(0).addChild(QtWidgets.QTreeWidgetItem([O.Name]))
+        self.ROIsTreeWidget.topLevelItem(0).addChild(QtWidgets.QTreeWidgetItem([O.Name,O.Type]))
         self.iren.Render()
         
     def _roi_clicked(self,_item):
         cR = self.roiListWidget.currentRow()
         print('_roi_clicked ' + str(cR))
         self.current_roi = cR
-        self.roiXSlider.setValue(int(ObjectsManager.rois_list[self.current_roi].source.GetCenter()[0]))
-        self.roiYSlider.setValue(int(ObjectsManager.rois_list[self.current_roi].source.GetCenter()[1]))
-        self.roiZSlider.setValue(int(ObjectsManager.rois_list[self.current_roi].source.GetCenter()[2]))
-        self.roiSizeSlider.setValue(int(ObjectsManager.rois_list[self.current_roi].source.GetRadius()))
+        self.Xspinbox.setValue(int(ObjectsManager.rois_list[self.current_roi].source.GetCenter()[0]))
+        self.Yspinbox.setValue(int(ObjectsManager.rois_list[self.current_roi].source.GetCenter()[1]))
+        self.Zspinbox.setValue(int(ObjectsManager.rois_list[self.current_roi].source.GetCenter()[2]))
+        self.Sspinbox.setValue(int(ObjectsManager.rois_list[self.current_roi].source.GetRadius()))
         ObjectsManager.rois_list[cR].ActorHighlightedProps()
                 
     def _roi_x_slider_changed(self,_item):
@@ -433,7 +453,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         cR = self.roiListWidget.currentRow()
         cR = ObjectsManager.rois_list[cR]   
         position = cR.source.GetCenter()
-        position = [float(self.roiXSlider.value())/1e3,position[1],position[2]]
+        position = [float(self.Xspinbox.value()),position[1],position[2]]
         cR.source.SetCenter(position)
         cR.actor.Modified()
         self.iren.Render()
@@ -443,7 +463,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         cR = self.roiListWidget.currentRow()
         cR = ObjectsManager.rois_list[cR]   
         position = cR.source.GetCenter()
-        position = [position[0],float(self.roiYSlider.value())/1e3,position[2]]
+        position = [position[0],float(self.Yspinbox.value()),position[2]]
         cR.source.SetCenter(position)
         cR.actor.Modified()
         self.iren.Render()
@@ -453,7 +473,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         cR = self.roiListWidget.currentRow()
         cR = ObjectsManager.rois_list[cR]   
         position = cR.source.GetCenter()
-        position = [position[0],position[1],float(self.roiZSlider.value())/1e3]
+        position = [position[0],position[1],float(self.Zspinbox.value())]
         cR.source.SetCenter(position)
         cR.actor.Modified()
         self.iren.Render()
@@ -462,7 +482,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         # if(self.current_actor != 0):
         cR = self.roiListWidget.currentRow()
         cR = ObjectsManager.rois_list[cR] 
-        size = self.roiSizeSlider.value()  
+        size = self.Sspinbox.value()  
         cR.source.SetRadius(size)
         cR.actor.Modified()
         self.iren.Render()
@@ -471,12 +491,14 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
     def _volume_clicked(self,_item):
         cR = self.volumesListWidget.currentRow()
         print('volume_clicked ' + str(cR))
+        previous_image = self.current_image
         self.current_image = cR
-        self.UpdateImageSlice(which_image=self.current_image)
         self.volMinValSlider.setValue(ObjectsManager.images_list[self.current_image].minVal)
         self.volMaxValSlider.setValue(ObjectsManager.images_list[self.current_image].maxVal)
         self.volTransparencySlider.setValue(ObjectsManager.images_list[self.current_image].alpha)
         self.volColormapBox.setCurrentIndex(self.available_colormaps.index(ObjectsManager.images_list[self.current_image].colormap))
+        self.UpdateImageSliders(which_image=self.current_image,previous_image=previous_image)
+        self.UpdateImageSlice(which_image=self.current_image)
         
     def _unload_volume_clicked(self,_item):
         cR = self.volumesListWidget.currentRow()
@@ -511,19 +533,24 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         print('Load volume')
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","All Files (*);Python Files (*.py)", options=options)
+        fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","All Files (*)", options=options)
         if fileName:
             print(fileName)
             Q = fileName[len(fileName)-4:len(fileName)]
-            if(Q == '.nii' or Q == 'i.gz'):
+            if(Q == '.nii' or Q == '.nii.gz'):
                 self.LoadAndDisplayImage(fileName)
 
     def _axial_slider_moved(self,_slider):
-        z = self.axialSlider.value()-1
-        z = int(z)
-        if(self.axial_slice != 0):
-            self.axial_slice.display_extent(0, self.axial_slice.shape[0] - 1, 0, self.axial_slice.shape[1] - 1, z, z)
-            self.axial_slice.Modified()
+        back_projection = ObjectsManager.images_list[self.current_image].InvertAffineFromPointWC([self.sagittalSlider.value(),
+                            self.coronalSlider.value(),self.axialSlider.value()])
+        #z = self.axial_slice.shape[2]*(self.axialSlider.value()-self.axialSlider.minimum())/self.axialSlider.maximum() #self.axialSlider.value()-1
+        z = int(back_projection[2])
+        #if(self.axial_slice != 0 and z >= 0 and z < self.axial_slice.shape[2]):
+        #    self.axial_slice.display_extent(0, self.axial_slice.shape[0] - 1, 0, self.axial_slice.shape[1] - 1, z, z)
+        #    self.axial_slice.Modified()
+        #else:
+        #    print('Axial slice not available')
+        self.UpdateImageSliceAxial(z)
             
         if(len(ObjectsManager.fod_list) > 0):
             args=(z,self.fod_subsamp)
@@ -532,25 +559,35 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
             ObjectsManager.fod_list[0].displayAxialFODs(z,self.fod_subsamp)
             ObjectsManager.fod_list[0].Modified()
             
-        self.axialEdit.setText(str(z))    
+        self.axialEdit.setText(str(self.axialSlider.value()))#setText(str(z))    
         self.iren.Render()     
                                     
     def _coronal_slider_moved(self,_slider):
-        x = self.coronalSlider.value()-1
-        x = int(x)
-        if(self.coronal_slice != 0):
-            self.coronal_slice.display_extent(0, self.coronal_slice.shape[0] - 1, x, x, 0, self.coronal_slice.shape[2]-1)
-            self.coronal_slice.Modified()
-        self.coronalEdit.setText(str(x))    
+        back_projection = ObjectsManager.images_list[self.current_image].InvertAffineFromPointWC([self.sagittalSlider.value(),
+                            self.coronalSlider.value(),self.axialSlider.value()])
+        #x = self.coronalSlider.value()-1
+        x = int(back_projection[1])
+        #if(self.coronal_slice != 0 and x >= 0 and x < self.coronal_slice.shape[1]):
+        #    self.coronal_slice.display_extent(0, self.coronal_slice.shape[0] - 1, x, x, 0, self.coronal_slice.shape[2]-1)
+        #    self.coronal_slice.Modified()
+        #else:
+        #    print('Coronal slice not available')
+        self.coronalEdit.setText(str(self.coronalSlider.value()))#str(x))    
+        self.UpdateImageSliceCoronal(x)
         self.iren.Render()     
                 
     def _sagittal_slider_moved(self,_slider):
-        x = self.sagittalSlider.value()-1
-        x = int(x)
-        if(self.sagittal_slice != 0):
-            self.sagittal_slice.display_extent(x, x, 0, self.sagittal_slice.shape[1] - 1, 0, self.sagittal_slice.shape[2]-1)
-            self.sagittal_slice.Modified()
-        self.sagittalEdit.setText(str(x))    
+        back_projection = ObjectsManager.images_list[self.current_image].InvertAffineFromPointWC([self.sagittalSlider.value(),
+                            self.coronalSlider.value(),self.axialSlider.value()])
+        #x = self.sagittalSlider.value()-1
+        x = int(back_projection[0])
+        #if(self.sagittal_slice != 0 and x >= 0 and x < self.sagittal_slice.shape[0]):
+        #    self.sagittal_slice.display_extent(x, x, 0, self.sagittal_slice.shape[1] - 1, 0, self.sagittal_slice.shape[2]-1)
+        #    self.sagittal_slice.Modified()
+        #else:
+        #    print('Sagittal slice not available')
+        self.UpdateImageSliceSagittal(x)
+        self.sagittalEdit.setText(str(self.sagittalSlider.value()))#x))    
         self.iren.Render()    
         
     def _axial_slider_edit(self):
@@ -686,6 +723,24 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
             ObjectsManager.tracts_list[self.tractsListWidget.currentRow()].DeleteROIByName(ObjectsManager.rois_list[self.roiListWidget.currentRow()].Name)
         self.ApplyROIsToTracts()
 
+    def _hide_show_all_tracts_button(self,_button):
+        print('Hide/show all tracts')
+        for tract in ObjectsManager.tracts_list:
+            if(tract.actor.GetVisibility() == 1):
+                tract.actor.VisibilityOff()
+            else:
+                tract.actor.VisibilityOn()
+    
+        self.iren.Render()
+
+    def _clip_coronal_button(self,_button):
+        print('Clip coronal button')
+        #affine = ObjectsManager.images_list[self.current_image].affine
+        #coords = np.asarray([self.coronalSlider.value(),self.sagittalSlider.value(),self.axialSlider.value(),1])
+        for tract in ObjectsManager.tracts_list:
+            tract.FilterTractsByCoordinatesWithShaders(current_slice_pos = self.axialSlider.value(), current_axis = 2, current_slice_thickness = 0.1)    
+        self.iren.Render()
+
     def ApplyROIsToTracts(self):
         for tract in ObjectsManager.tracts_list:
             tract.color_tracts_by_roi_intersection_optimized(
@@ -748,11 +803,13 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
             # index = ObjectsManager.tracts_list.index(NewPickedActor)
             index = ObjectsManager.IndexOfTractographyObject(NewPickedActor)
             if(index != -1):
+                # It is a ctract
                 print('Found tract in list ' + str(index))
                 self.tractsListWidget.setCurrentRow(index)
                 self.current_actor_properties = vtk.vtkProperty()
                 self.current_actor_properties.DeepCopy(self.current_actor.GetProperty())
                 ObjectsManager.tracts_list[index].ActorHighlightedProps()
+                self.tractsListWidget.setCurrentRow(index)
                 self.iren.Render()
                 self._interactor_camera() # Tracts should not be moved
             else:
@@ -778,6 +835,69 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         
         # self.iren.Render()
         
+    def UpdateImageSliders(self,which_image=0,previous_image=0):
+        new_image = ObjectsManager.images_list[which_image]
+        old_image = ObjectsManager.images_list[previous_image]
+        dataV = new_image.data
+        #data_aff = new_image.affine
+        
+        rmin_extent = new_image.min_extent
+        rmax_extent = new_image.max_extent
+
+        axval = self.axialSlider.value()
+        corval = self.coronalSlider.value()
+        sagval = self.sagittalSlider.value()
+            
+        if(previous_image != which_image):
+            print('Updating image sliders for image ' + str(which_image))
+            p = np.asarray([sagval,corval,axval])
+            #p_transformed = old_image.InvertAffineFromPointWC(p)
+            #p_back = new_image.ApplyAffineToPointWC(p_transformed)
+            p_back = p 
+            sagval = int(p_back[0])
+            corval = int(p_back[1])
+            axval = int(p_back[2])
+        
+        #z = int(np.round(dataV.shape[2]/2))
+        #cval = self.axialSlider.value()
+        self.axialSlider.setMinimum(rmin_extent[2])
+        self.axialSlider.setMaximum(rmax_extent[2])
+        if(axval < rmin_extent[2] or axval > rmax_extent[2]):
+            self.axialSlider.setValue(int((rmin_extent[2]+rmax_extent[2])/2)+1)
+        else:
+            self.axialSlider.setValue(axval)
+
+        #x = int(np.round(dataV.shape[1]/2))
+        self.coronalSlider.setMinimum(rmin_extent[1])
+        #self.coronalSlider.setMaximum(dataV.shape[1])
+        self.coronalSlider.setMaximum(rmax_extent[1])
+        if(corval < rmin_extent[1] or corval > rmax_extent[1]):
+            self.coronalSlider.setValue(int((rmin_extent[1]+rmax_extent[1])/2)+1)
+        else:
+            self.coronalSlider.setValue(corval)
+
+        #y = int(np.round(dataV.shape[0]/2))
+        self.sagittalSlider.setMinimum(rmin_extent[0])
+        #self.sagittalSlider.setMaximum(dataV.shape[0])
+        self.sagittalSlider.setMaximum(rmax_extent[0])
+        if(sagval < rmin_extent[0] or sagval > rmax_extent[0]):
+            self.sagittalSlider.setValue(int((rmin_extent[0]+rmax_extent[0])/2)+1)
+        else:
+            self.sagittalSlider.setValue(sagval)
+        
+        minV = int(dataV.min()*255)
+        maxV = int(dataV.max()*255)
+        self.volMinValSlider.setMinimum(minV)
+        self.volMinValSlider.setMaximum(maxV)
+        self.volMinValSlider.setValue(minV)
+
+        self.volMaxValSlider.setMinimum(minV)
+        self.volMaxValSlider.setMaximum(maxV)
+        self.volMaxValSlider.setValue(maxV)        
+
+        self.volMinValEdit.setText(str(minV/255))
+        self.volMaxValEdit.setText(str(maxV/255))
+                
     def LoadAndDisplayImage(self, filename, minclip=0,maxclip=255):
         fparts = filename.split("/")
         if(len(ObjectsManager.images_list) == 0):
@@ -798,40 +918,32 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.volTransparencySlider.setMaximum(255)
         self.volTransparencySlider.setValue(255)
 
-        dataV = new_image.data
-
-        z = int(np.round(dataV.shape[2]/2))
-        self.axialSlider.setMinimum(1)
-        self.axialSlider.setMaximum(dataV.shape[2])
-        self.axialSlider.setValue(z+1)
-
-        x = int(np.round(dataV.shape[1]/2))
-        self.coronalSlider.setMinimum(1)
-        self.coronalSlider.setMaximum(dataV.shape[1])
-        self.coronalSlider.setValue(x+1)
-
-        y = int(np.round(dataV.shape[0]/2))
-        self.sagittalSlider.setMinimum(1)
-        self.sagittalSlider.setMaximum(dataV.shape[0])
-        self.sagittalSlider.setValue(y+1)
-        
-        minV = int(dataV.min()*255)
-        maxV = int(dataV.max()*255)
-        self.volMinValSlider.setMinimum(minV)
-        self.volMinValSlider.setMaximum(maxV)
-        self.volMinValSlider.setValue(minV)
-
-        self.volMaxValSlider.setMinimum(minV)
-        self.volMaxValSlider.setMaximum(maxV)
-        self.volMaxValSlider.setValue(maxV)        
-
-        self.volMinValEdit.setText(str(minV/255))
-        self.volMaxValEdit.setText(str(maxV/255))
-
         self.volumesListWidget.addItem(fparts[-1])
         self.current_image = len(ObjectsManager.images_list)-1
         self.volumesListWidget.setCurrentRow(self.current_image)
+        self.UpdateImageSliders(which_image=self.current_image)
         self.UpdateImageSlice(which_image=self.current_image)
+
+    def UpdateImageSliceAxial(self,z):
+            if(self.axial_slice != 0 and z >= 0 and z < self.axial_slice.shape[2]):
+                self.axial_slice.display_extent(0, self.axial_slice.shape[0] - 1, 0, self.axial_slice.shape[1] - 1, z, z)
+                self.axial_slice.Modified()
+            else:
+                print('Axial slice not available')
+    
+    def UpdateImageSliceCoronal(self,x):             
+        if(self.coronal_slice != 0 and x >= 0 and x < self.coronal_slice.shape[1]):
+            self.coronal_slice.display_extent(0, self.coronal_slice.shape[0] - 1, x, x, 0, self.coronal_slice.shape[2]-1)
+            self.coronal_slice.Modified()
+        else:
+            print('Coronal slice not available')
+           
+    def UpdateImageSliceSagittal(self,y):
+        if(self.sagittal_slice != 0 and y >= 0 and y < self.sagittal_slice.shape[0]):
+            self.sagittal_slice.display_extent(y, y, 0, self.sagittal_slice.shape[1] - 1, 0, self.sagittal_slice.shape[2]-1)
+            self.sagittal_slice.Modified()
+        else:
+            print('Sagittal slice not available')
 
     def UpdateImageSlice(self, which_image=0, minclip=0,maxclip=255):   
         print('UpdateImageSlice ' + str(which_image))
@@ -852,21 +964,27 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         maxV = ObjectsManager.images_list[which_image].maxVal
         lut = ObjectsManager.images_list[which_image].lut
         
+        #extents = ObjectsManager.images_list[which_image].max_extent # np.abs(np.matmul(data_aff[0:3,0:3],dataV.shape)).astype(int)
+        back_projection = ObjectsManager.images_list[which_image].InvertAffineFromPointWC([self.sagittalSlider.value(),
+                            self.coronalSlider.value(),self.axialSlider.value()])
+        
         if(self.show_axial_plane == True):
-            z = self.axialSlider.value()-1
             self.axial_slice = actor.slicer(dataV,affine=data_aff,value_range=(minV,maxV),lookup_colormap=lut)
             self.scene.AddActor(self.axial_slice)
-            self.axial_slice.display_extent(0, dataV.shape[0] - 1, 0, dataV.shape[1] - 1, z, z)
+            z = int(back_projection[2])
+            self.UpdateImageSliceAxial(z)
+
         if(self.show_coronal_plane == True):
-            x = self.coronalSlider.value()-1
             self.coronal_slice = actor.slicer(dataV,affine=data_aff,value_range=(minV,maxV),lookup_colormap=lut)
-            self.coronal_slice.display_extent(0, dataV.shape[1] - 1, x, x, 0, dataV.shape[2]-1)
             self.scene.AddActor(self.coronal_slice)
+            x = int(back_projection[1])
+            self.UpdateImageSliceCoronal(x)
+            
         if(self.show_sagittal_plane == True):
-            y = self.sagittalSlider.value()-1
             self.sagittal_slice = actor.slicer(dataV,affine=data_aff,value_range=(minV,maxV),lookup_colormap=lut)
             self.scene.AddActor(self.sagittal_slice)
-            self.sagittal_slice.display_extent(y, y, 0, dataV.shape[0] - 1, 0, dataV.shape[2]-1)
+            y = int(back_projection[0])
+            self.UpdateImageSliceSagittal(y)
 
         #self.scene.ResetCamera()
         self.scene.ResetCameraClippingRange()
@@ -894,19 +1012,25 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         print('Going to load ' + filename)
         
         #ObjectsManager.images_list[self.current_image]
+        if(len(ObjectsManager.images_list) < 1 or self.current_image < 0):
+            print('You should first load and select a reference image')
+            affine = np.eye(4)
+        else:
+            affine = ObjectsManager.images_list[self.current_image].affine
         if('.trk' in filename or '.vtk' in filename):
             if(self.current_image < len(ObjectsManager.images_list)):
-                tractography = TractographyObject(filename,colorby,affine=ObjectsManager.images_list[self.current_image].affine,size4centering=ObjectsManager.images_list[self.current_image].data.shape)
+                tractography = TractographyObject(filename,colorby,affine=affine,size4centering=ObjectsManager.images_list[self.current_image].data.shape)
             else:
                 print('First load and select a reference image')
                 return
         else:
-            tractography = TractographyObject(filename,colorby,affine=ObjectsManager.images_list[self.current_image].affine)
+            tractography = TractographyObject(filename,colorby,affine=affine)
 
         ObjectsManager.AddTractographyObject(tractography)
         
         self.scene.AddActor(tractography.actor)
-        self.scene.ResetCamera()
+        if(len(ObjectsManager.tracts_list) == 1):
+            self.scene.ResetCamera()
         self.scene.ResetCameraClippingRange()
         
         filename = filename.replace('\\','/')

@@ -92,7 +92,7 @@ class ImageObject(object):
         self.ReferenceFile = filename
 
         affine = data.affine
-        self.origin = affine[0:3,3]
+        self.origin = np.asarray([0,0,0])#affine[0:3,3]
         #affine[0:3,3] = 0
         print(self.origin)
 
@@ -113,9 +113,44 @@ class ImageObject(object):
         self.maxVal = maxVal
         self.alpha = alpha
         self.colormap = colormap
+    
+        max_extent = self.ApplyAffineToPointWC(dataV.shape).astype(int)
+        min_extent = self.ApplyAffineToPointWC([0,0,0]).astype(int)    
+        self.min_extent = np.min(np.vstack((min_extent[0:3],max_extent[0:3])),axis=0)
+        self.max_extent = np.max(np.vstack((min_extent[0:3],max_extent[0:3])),axis=0)
         
         self.UpdateLUT()
 
+    def ApplyAffineToPoint(self, point):
+        #p = np.asarray([point[0],point[1],point[2],1])
+        p = np.asarray(point)
+        #p2 = np.matmul(self.affine,p)
+        p2 = np.matmul(self.affine[0:3,0:3],p)
+        return p2
+    
+    def InvertAffineFromPoint(self, point):
+        #p = np.asarray([point[0],point[1],point[2],1])
+        p = np.asarray(point)
+        #inv_affine = np.linalg.inv(self.affine)
+        inv_affine = np.linalg.inv(self.affine[0:3,0:3])
+        p2 = np.matmul(inv_affine,p)
+        return p2
+
+    def ApplyAffineToPointWC(self, point):
+        p = np.asarray([point[0],point[1],point[2],1])
+        #p = np.asarray(point)
+        p2 = np.matmul(self.affine,p)
+        #p2 = np.matmul(self.affine[0:3,0:3],p)
+        return p2
+    
+    def InvertAffineFromPointWC(self, point):
+        p = np.asarray([point[0],point[1],point[2],1])
+        #p = np.asarray(point)
+        inv_affine = np.linalg.inv(self.affine)
+        #inv_affine = np.linalg.inv(self.affine[0:3,0:3])
+        p2 = np.matmul(inv_affine,p)
+        return p2
+    
     def UpdateMinMax(self,minclip=0,maxclip=255):
         self.minVal = minclip
         self.maxVal = maxclip
@@ -160,6 +195,8 @@ class TractographyObject(object):
         self.data = self.PreparePolydataGivenPointsAndLines_fast(Tracts,color_mode=color_mode,my_color=my_color,max_tracts=max_tracts)        
         self.mapper = vtk.vtkPolyDataMapper()
         self.mapper.SetInputDataObject(self.data)
+        #self.mapper.MapDataArrayToVertexAttribute("worldPos", "worldPos", vtk.VTK_FLOAT)
+        
         actor = vtk.vtkActor()
         actor.SetMapper(self.mapper)        
         
@@ -168,7 +205,7 @@ class TractographyObject(object):
         self.actor = actor
         self.color_mode = color_mode
         self.ActorDefaultProps()
-        self.actor.SetPickable(False)
+        self.actor.SetPickable(True)
         
         self.original_colors = vtk.vtkUnsignedCharArray()
         self.original_colors.DeepCopy(self.data.GetPointData().GetScalars())
@@ -249,7 +286,12 @@ class TractographyObject(object):
         # Build vtkPoints from numpy
         vtk_points = vtk.vtkPoints()
         vtk_points.SetData(vtk.util.numpy_support.numpy_to_vtk(points_np, deep=True))
-
+        
+        #coords = vtk.vtkFloatArray()
+        #coords.SetNumberOfComponents(3)
+        #coords.SetName("worldPos")
+        #coords.SetArray(vtk.util.numpy_support.numpy_to_vtk(points_np, deep=True), total_points * 3, 1)
+        
         # Build vtk color array properly
         vtk_colors = vtk.util.numpy_support.numpy_to_vtk(colors_np, deep=True, array_type=vtk.VTK_UNSIGNED_CHAR)
         vtk_colors.SetNumberOfComponents(4)
@@ -260,6 +302,7 @@ class TractographyObject(object):
         data.SetPoints(vtk_points)
         data.SetLines(lines)
         data.GetPointData().SetScalars(vtk_colors)
+        #data.GetPointData().AddArray(coords)
 
         return data
         
@@ -646,7 +689,7 @@ class TractographyObject(object):
         #polydata.GetCellData().SetScalars(Colors)
         polydata.Modified()
         
-    def ColorSpecificLinesTemp4(self, selected_lines, alpha_outside=20):
+    def ColorSpecificLinesTemp4(self, selected_lines, alpha_outside=10):
         """
         selected_lines: boolean array of length = number of cells
                         True = intersects ROI
@@ -757,13 +800,14 @@ class TractographyObject(object):
         actor.GetProperty().SetSpecularPower(30.0)
         
         #shader_property = actor.GetShaderProperty()
+
         #shader_property.AddShaderReplacement(
         #   vtk.vtkShader.Fragment,
         #   "//VTK::Light::Impl",  # replace VTK's lighting implementation
         #   True,
         #   self.custom_fragment_code(),
         #   False
-        #)              
+        #)                      
         actor.Modified()    
 
     def ActorHighlightedProps(self):
@@ -795,8 +839,7 @@ class TractographyObject(object):
             self.actor.Modified()
             self.mask = None
     
-    def custom_fragment_code(self):
-        shader = 2
+    def custom_fragment_code(self, shader = 2, current_slice_pos = 1, current_axis = 2, current_slice_thickness = 5):
         if(shader == 1):
             return """
             //VTK::Light::Impl
@@ -877,3 +920,117 @@ class TractographyObject(object):
             vec3 colorOut = baseColor * (0.3 + 0.7*NdotL) + scatter * 0.5;
             gl_FragData[0] = vec4(colorOut, opacity);    
             """
+        elif(shader == 5):
+            return """
+            //VTK::Light::Impl
+
+            //vec3 N = normalize(normalVCVSOutput);
+            //vec3 V = normalize(-vertexVC.xyz);
+            //vec3 L = normalize(vec3(0.4, 0.6, 1.0));
+            vec3 baseColor = vertexColorVSOutput.rgb;
+
+            // --- Slice masking in fragment shader ---
+            const float slicePos = """ + str(current_slice_pos) + """;      // adjust
+            const int axis = """ + str(current_axis) + """;              // 0=x,1=y,2=z
+            const float sliceThickness = """ + str(current_slice_thickness) + """; // adjust
+
+            // vertexMC is available in VTK varyings
+            
+            float dist;
+            if (axis == 0)
+                dist = abs(vertexVC.x - slicePos);
+            else if (axis == 1)
+                dist = abs(vertexVC.y - slicePos);
+            else
+                dist = abs(vertexVC.z - slicePos);
+            
+            float alpha = 1.0 - 0.9 * smoothstep(sliceThickness * 0.8, sliceThickness, dist);
+
+            vec3 colorOut = baseColor; 
+
+            // --- Apply slice alpha directly ---
+            gl_FragData[0] = vec4(colorOut, opacity * alpha);
+            """
+    
+    def FilterTractsByCoordinatesWithShaders(self, current_slice_pos=1, current_axis=2, current_slice_thickness=5):
+        shader_property = self.actor.GetShaderProperty()
+        shader_property.ClearAllShaderReplacements()
+        
+        vertex_shader_code = """
+            //VTK::PositionVC::Impl
+
+            //out vec3 vWorldPos;
+            //in vec3 worldPos;
+
+            // --- Slice masking in vertex shader ---
+            const float slicePos = """ + str(current_slice_pos) + """;      // adjust
+            const int axis = """ + str(current_axis) + """;              // 0=x,1=y,2=z
+            const float sliceThickness = """ + str(current_slice_thickness) + """; // adjust
+            
+            //vec3 worldPos = MCWCMatrix * vec4(vertexMC.xyz, 1.0);
+            //vWorldPos = worldPos.xyz;
+
+            float dist;
+            if (axis == 0)
+                dist = abs(vertexMC.x - slicePos);
+            else if (axis == 1)
+                dist = abs(vertexMC.y - slicePos);
+            else
+                dist = abs(vertexMC.z - slicePos);
+
+            // calcola alpha basato sulla distanza dalla slice
+            float alpha = 1.0 - 0.9 * smoothstep(sliceThickness * 0.8, sliceThickness, dist);
+            
+            // passa l'alpha al fragment shader attraverso vertexColorVSOutput.a
+            vertexColorVSOutput.a = alpha;
+        """
+        
+        fragment_shader_code = """
+            //VTK::Light::Impl
+
+            vec3 baseColor = vertexColorVSOutput.rgb;
+            float alpha = vertexColorVSOutput.a; // ricevi l'alpha calcolato nel vertex shader
+
+            vec3 colorOut = baseColor; 
+
+            // --- Apply slice alpha directly ---
+            gl_FragData[0] = vec4(colorOut, opacity * alpha);
+        """
+        
+        shader_property.AddShaderReplacement(
+           vtk.vtkShader.Vertex,
+           "//VTK::PositionVC::Impl",  # replace VTK's position implementation
+           True,
+           vertex_shader_code,
+           False
+        )
+
+        shader_property.AddShaderReplacement(
+           vtk.vtkShader.Fragment,
+           "//VTK::Light::Impl",  # replace VTK's lighting implementation
+           True,
+           fragment_shader_code,
+           False
+        )              
+
+        def shader_debug(caller, event, calldata=None):
+            program = calldata
+            if program is None:
+                return
+
+            print("Vertex shader source:")
+            print(program.GetVertexShaderSource())
+
+            print("Fragment shader source:")
+            print(program.GetFragmentShaderSource())
+
+            print("Uniforms:")
+            for i in range(program.GetNumberOfUniforms()):
+                print(f"  {i}: {program.GetUniformName(i)} type={program.GetUniformType(i)} size={program.GetUniformSize(i)}")
+
+        self.mapper.AddObserver(vtk.vtkCommand.UpdateShaderEvent, shader_debug)
+
+        self.actor.Modified()    
+        
+        
+
