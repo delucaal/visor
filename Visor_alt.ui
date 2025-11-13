@@ -313,8 +313,14 @@
           <x>10</x>
           <y>500</y>
           <width>176</width>
-          <height>23</height>
+          <height>31</height>
          </rect>
+        </property>
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
         </property>
         <property name="font">
          <font>
@@ -504,7 +510,7 @@
            <bool>true</bool>
           </property>
           <property name="sizePolicy">
-           <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+           <sizepolicy hsizetype="Fixed" vsizetype="MinimumExpanding">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -522,7 +528,7 @@
            </size>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>2</number>
           </property>
           <property name="usesScrollButtons">
            <bool>false</bool>
@@ -561,7 +567,7 @@
               <x>10</x>
               <y>20</y>
               <width>151</width>
-              <height>23</height>
+              <height>31</height>
              </rect>
             </property>
             <property name="font">
@@ -582,50 +588,11 @@
              <bool>false</bool>
             </property>
            </widget>
-           <widget class="QPushButton" name="clipCoronalButton">
-            <property name="geometry">
-             <rect>
-              <x>10</x>
-              <y>130</y>
-              <width>51</width>
-              <height>26</height>
-             </rect>
-            </property>
-            <property name="text">
-             <string>Coron.</string>
-            </property>
-           </widget>
-           <widget class="QPushButton" name="clipSagittalButton">
-            <property name="geometry">
-             <rect>
-              <x>60</x>
-              <y>130</y>
-              <width>51</width>
-              <height>26</height>
-             </rect>
-            </property>
-            <property name="text">
-             <string>Sagit.</string>
-            </property>
-           </widget>
-           <widget class="QPushButton" name="clipAxialButton">
-            <property name="geometry">
-             <rect>
-              <x>110</x>
-              <y>130</y>
-              <width>51</width>
-              <height>26</height>
-             </rect>
-            </property>
-            <property name="text">
-             <string>Axial</string>
-            </property>
-           </widget>
            <widget class="QLabel" name="label_13">
             <property name="geometry">
              <rect>
               <x>50</x>
-              <y>110</y>
+              <y>120</y>
               <width>71</width>
               <height>16</height>
              </rect>
@@ -642,17 +609,17 @@
              <set>Qt::AlignCenter</set>
             </property>
            </widget>
-           <widget class="QPushButton" name="disableClipButton">
+           <widget class="QPushButton" name="toggleClipButton">
             <property name="geometry">
              <rect>
               <x>10</x>
-              <y>160</y>
+              <y>140</y>
               <width>151</width>
-              <height>21</height>
+              <height>31</height>
              </rect>
             </property>
             <property name="text">
-             <string>Disable</string>
+             <string>Disable clipping</string>
             </property>
            </widget>
            <widget class="QSlider" name="clipThickSlider">
@@ -663,6 +630,12 @@
               <width>141</width>
               <height>22</height>
              </rect>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
             </property>
             <property name="minimum">
              <number>0</number>
@@ -681,7 +654,7 @@
             <property name="geometry">
              <rect>
               <x>10</x>
-              <y>190</y>
+              <y>180</y>
               <width>151</width>
               <height>20</height>
              </rect>
@@ -702,10 +675,16 @@
             <property name="geometry">
              <rect>
               <x>10</x>
-              <y>90</y>
+              <y>100</y>
               <width>141</width>
               <height>22</height>
              </rect>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
             </property>
             <property name="minimum">
              <number>0</number>
@@ -753,7 +732,7 @@
               <x>10</x>
               <y>50</y>
               <width>151</width>
-              <height>23</height>
+              <height>31</height>
              </rect>
             </property>
             <property name="font">
@@ -783,6 +762,12 @@
               <height>22</height>
              </rect>
             </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="minimum">
              <number>-100</number>
             </property>
@@ -804,6 +789,12 @@
               <width>141</width>
               <height>22</height>
              </rect>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
             </property>
             <property name="minimum">
              <number>-100</number>
@@ -827,6 +818,12 @@
               <height>22</height>
              </rect>
             </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="minimum">
              <number>-100</number>
             </property>
@@ -838,6 +835,69 @@
             </property>
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+           <widget class="QLabel" name="label_19">
+            <property name="geometry">
+             <rect>
+              <x>151</x>
+              <y>230</y>
+              <width>20</width>
+              <height>20</height>
+             </rect>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>11</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>X</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+           <widget class="QLabel" name="label_20">
+            <property name="geometry">
+             <rect>
+              <x>151</x>
+              <y>260</y>
+              <width>20</width>
+              <height>20</height>
+             </rect>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>11</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>Y</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+           <widget class="QLabel" name="label_21">
+            <property name="geometry">
+             <rect>
+              <x>150</x>
+              <y>290</y>
+              <width>21</width>
+              <height>21</height>
+             </rect>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>11</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>Z</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
             </property>
            </widget>
           </widget>
@@ -1139,6 +1199,12 @@
               <height>291</height>
              </rect>
             </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="widgetResizable">
              <bool>true</bool>
             </property>
@@ -1156,7 +1222,7 @@
                <rect>
                 <x>10</x>
                 <y>10</y>
-                <width>85</width>
+                <width>91</width>
                 <height>20</height>
                </rect>
               </property>
@@ -1208,7 +1274,7 @@
                <rect>
                 <x>10</x>
                 <y>30</y>
-                <width>85</width>
+                <width>91</width>
                 <height>20</height>
                </rect>
               </property>
@@ -1238,7 +1304,7 @@
           <x>10</x>
           <y>10</y>
           <width>176</width>
-          <height>23</height>
+          <height>31</height>
          </rect>
         </property>
         <property name="font">
@@ -1256,7 +1322,7 @@
           <x>10</x>
           <y>40</y>
           <width>176</width>
-          <height>23</height>
+          <height>31</height>
          </rect>
         </property>
         <property name="font">
@@ -1372,7 +1438,7 @@
         <property name="geometry">
          <rect>
           <x>10</x>
-          <y>430</y>
+          <y>340</y>
           <width>176</width>
           <height>23</height>
          </rect>
@@ -1390,10 +1456,16 @@
         <property name="geometry">
          <rect>
           <x>10</x>
-          <y>470</y>
-          <width>181</width>
+          <y>370</y>
+          <width>171</width>
           <height>301</height>
          </rect>
+        </property>
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
         </property>
         <column>
          <property name="text">

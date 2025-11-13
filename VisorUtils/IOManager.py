@@ -21,7 +21,7 @@ class VisorIO(object):
     @staticmethod
     def LoadMATTractography(filename,max_tracts=1e10,affine=None):
         t = time.time()
-        MatFile = read_mat(filename,variable_names=['Tracts','TractMask','VDims']);
+        MatFile = read_mat(filename,variable_names=['Tracts','TractMask','VDims'])
         elapsed = time.time() - t
         print('Loading of MAT took ' + str(elapsed) + 's')
         t = time.time()
@@ -29,14 +29,15 @@ class VisorIO(object):
         Tracts = MatFile['Tracts']#np.asarray(MatFile['Tracts']);
         TractMask = MatFile['TractMask']
         VD = MatFile['VDims']        
+        #Shift = affine[0:3,-1]
         Shift = affine[0:3,-1]
         # for i in range(0,min(Tracts.shape[0],max_tracts)):
         for i in range(0,min(len(Tracts),max_tracts)):
             P = Tracts[i]
             # P[:,0] = TractMask.shape[0]*VD[1]-P[:,0]
             # P[:,1] = TractMask.shape[1]*VD[0]-P[:,1]
-            P[:,0] = Shift[1]-P[:,0]+TractMask.shape[1]*VD[1] 
-            P[:,1] = Shift[0]-P[:,1]+TractMask.shape[0]*VD[0] 
+            P[:,0] = -P[:,0]+TractMask.shape[0]*VD[1] + Shift[1]
+            P[:,1] = -P[:,1]+TractMask.shape[1]*VD[0] + Shift[0]
             P[:,2] = Shift[2]+P[:,2]
             Tracts[i] = P
         

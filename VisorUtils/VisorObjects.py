@@ -92,7 +92,8 @@ class ImageObject(object):
         self.ReferenceFile = filename
 
         affine = data.affine
-        self.origin = np.asarray([0,0,0])#affine[0:3,3]
+        #self.origin = np.asarray([0,0,0])
+        self.origin = affine[0:3,3]
         #affine[0:3,3] = 0
         print(self.origin)
 
@@ -212,6 +213,11 @@ class TractographyObject(object):
         
         self.mask = None
         self.ROIs = []
+        
+        self.clipping = False
+        self.clipping_axis = 2
+        self.clipping_position = 1.0
+        self.clipping_thickness = 0.1
         
     def PreparePolydataGivenPointsAndLines_fast(self,Tracts, color_mode=0, my_color=[255,255,255], max_tracts=1e5):
         n_tracts = min(len(Tracts), int(max_tracts))
@@ -571,7 +577,6 @@ class TractographyObject(object):
         transfP.Update()
         tracts_transformed = transfP.GetOutput()
 
-
         for roi in rois_list:
             # Transform ROI surface
             transf2 = vtk.vtkTransform()
@@ -799,7 +804,8 @@ class TractographyObject(object):
         actor.GetProperty().SetSpecularColor(1.0,1.0,1.0)
         actor.GetProperty().SetSpecularPower(30.0)
         
-        #shader_property = actor.GetShaderProperty()
+        shader_property = actor.GetShaderProperty()
+        shader_property.ClearAllShaderReplacements()
 
         #shader_property.AddShaderReplacement(
         #   vtk.vtkShader.Fragment,
@@ -952,7 +958,14 @@ class TractographyObject(object):
             gl_FragData[0] = vec4(colorOut, opacity * alpha);
             """
     
-    def FilterTractsByCoordinatesWithShaders(self, current_slice_pos=1, current_axis=2, current_slice_thickness=5):
+    def ClipTractsByCoordinatesWithShaders(self, current_slice_pos=None, current_axis=None, current_slice_thickness=None):
+        if(current_slice_pos is None):
+            current_slice_pos = self.clipping_position
+        if(current_axis is None):
+            current_axis = self.clipping_axis
+        if(current_slice_thickness is None):
+            current_slice_thickness = self.clipping_thickness
+        
         shader_property = self.actor.GetShaderProperty()
         shader_property.ClearAllShaderReplacements()
         
@@ -979,7 +992,7 @@ class TractographyObject(object):
                 dist = abs(vertexMC.z - slicePos);
 
             // calcola alpha basato sulla distanza dalla slice
-            float alpha = 1.0 - 0.9 * smoothstep(sliceThickness * 0.8, sliceThickness, dist);
+            float alpha = 1.0 - 1.0 * smoothstep(sliceThickness * 0.8, sliceThickness, dist);
             
             // passa l'alpha al fragment shader attraverso vertexColorVSOutput.a
             vertexColorVSOutput.a = alpha;
@@ -1013,24 +1026,17 @@ class TractographyObject(object):
            False
         )              
 
-        def shader_debug(caller, event, calldata=None):
-            program = calldata
-            if program is None:
-                return
-
-            print("Vertex shader source:")
-            print(program.GetVertexShaderSource())
-
-            print("Fragment shader source:")
-            print(program.GetFragmentShaderSource())
-
-            print("Uniforms:")
-            for i in range(program.GetNumberOfUniforms()):
-                print(f"  {i}: {program.GetUniformName(i)} type={program.GetUniformType(i)} size={program.GetUniformSize(i)}")
-
-        self.mapper.AddObserver(vtk.vtkCommand.UpdateShaderEvent, shader_debug)
-
         self.actor.Modified()    
+        self.clipping = True
+        self.clipping_axis = current_axis
+        self.clipping_position = current_slice_pos
+        self.clipping_thickness = current_slice_thickness
+        
+    def ClipDisable(self):
+        shader_property = self.actor.GetShaderProperty()
+        shader_property.ClearAllShaderReplacements()
+        self.actor.Modified()
+        self.clipping = False
         
         
 

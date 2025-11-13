@@ -61,7 +61,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.deleteAllTractsButton = self.findChild(QtWidgets.QPushButton,'deleteAllTracts')
         self.deleteOneTractButton = self.findChild(QtWidgets.QPushButton,'deleteOneTractButton')
         self.deleteFODButton = self.findChild(QtWidgets.QPushButton,'deleteFODButton')
-        self.clipCoronalButton = self.findChild(QtWidgets.QPushButton,'clipCoronalButton')
+        self.toggleClipButton = self.findChild(QtWidgets.QPushButton,'toggleClipButton')
         self.deleteROIButton = self.findChild(QtWidgets.QPushButton,'deleteROIButton')
         self.toggleROIButton = self.findChild(QtWidgets.QPushButton,'toggleROIButton')
 
@@ -94,6 +94,8 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.sphereROIButton = self.findChild(QtWidgets.QPushButton,'sphereROIButton')
         self.clipThickSlider = self.findChild(QtWidgets.QSlider,'clipThickSlider')
         self.zClipSlider = self.findChild(QtWidgets.QSlider,'zClipSlider')
+        self.yClipSlider = self.findChild(QtWidgets.QSlider,'yClipSlider')
+        self.xClipSlider = self.findChild(QtWidgets.QSlider,'xClipSlider')
         
         self.roiListWidget = self.findChild(QtWidgets.QListWidget,'ROIsListWidget')
         
@@ -129,7 +131,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.deleteROIButton.clicked.connect(self._delete_ROI_button)
         self.toggleROIButton.clicked.connect(self._toggle_ROI_button)
         self.hideShowAllTractsButton.clicked.connect(self._hide_show_all_tracts_button)
-        self.clipCoronalButton.clicked.connect(self._clip_coronal_button)
+        self.toggleClipButton.clicked.connect(self._clip_toggle_button)
 
         self.tractsListWidget.itemClicked.connect(self._track_clicked)
         self.volumesListWidget.itemClicked.connect(self._volume_clicked)
@@ -157,6 +159,8 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.tractThickSlider.valueChanged.connect(self._tract_thick_slider_changed)
         self.clipThickSlider.valueChanged.connect(self._clip_thickness_slider_moved)
         self.zClipSlider.valueChanged.connect(self._z_clip_slider_moved)
+        self.yClipSlider.valueChanged.connect(self._y_clip_slider_moved)
+        self.xClipSlider.valueChanged.connect(self._x_clip_slider_moved)
         
         self.axialImageCheckBox.stateChanged.connect(self._axialimage_checkbox_state_changed)
         self.coronalImageCheckBox.stateChanged.connect(self._coronalimage_checkbox_state_changed)
@@ -363,13 +367,25 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
     def _clip_thickness_slider_moved(self,_item):
         print('_clip_thickness_slider_moved ' + str(self.clipThickSlider.value()))
         for tract in ObjectsManager.tracts_list:
-            tract.FilterTractsByCoordinatesWithShaders(current_slice_pos=self.zClipSlider.value()/1e2, current_axis=2, current_slice_thickness=self.clipThickSlider.value()/1e2)
+            tract.ClipTractsByCoordinatesWithShaders(current_slice_thickness=self.clipThickSlider.value()/1e2)
         self.iren.Render()
         
     def _z_clip_slider_moved(self,_item):
         print('_z_clip_slider_moved ' + str(self.zClipSlider.value()))
         for tract in ObjectsManager.tracts_list:
-            tract.FilterTractsByCoordinatesWithShaders(current_slice_pos=self.zClipSlider.value()/1e2, current_axis=2, current_slice_thickness=self.clipThickSlider.value()/1e2)
+            tract.ClipTractsByCoordinatesWithShaders(current_slice_pos=self.zClipSlider.value()/1e2, current_axis=2, current_slice_thickness=self.clipThickSlider.value()/1e2)
+        self.iren.Render()
+        
+    def _y_clip_slider_moved(self,_item):
+        print('_y_clip_slider_moved ' + str(self.yClipSlider.value()))
+        for tract in ObjectsManager.tracts_list:
+            tract.ClipTractsByCoordinatesWithShaders(current_slice_pos=self.yClipSlider.value()/1e2, current_axis=1, current_slice_thickness=self.clipThickSlider.value()/1e2)
+        self.iren.Render()
+        
+    def _x_clip_slider_moved(self,_item):
+        print('_x_clip_slider_moved ' + str(self.xClipSlider.value()))
+        for tract in ObjectsManager.tracts_list:
+            tract.ClipTractsByCoordinatesWithShaders(current_slice_pos=self.xClipSlider.value()/1e2, current_axis=0, current_slice_thickness=self.clipThickSlider.value()/1e2)
         self.iren.Render()
                 
     def _tracts_subsampling_slider_moved(self,_item):
@@ -733,12 +749,13 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
     
         self.iren.Render()
 
-    def _clip_coronal_button(self,_button):
-        print('Clip coronal button')
+    def _clip_toggle_button(self,_button):
+        print('Clip toggle button')
         #affine = ObjectsManager.images_list[self.current_image].affine
         #coords = np.asarray([self.coronalSlider.value(),self.sagittalSlider.value(),self.axialSlider.value(),1])
         for tract in ObjectsManager.tracts_list:
-            tract.FilterTractsByCoordinatesWithShaders(current_slice_pos = self.axialSlider.value(), current_axis = 2, current_slice_thickness = 0.1)    
+            tract.ClipDisable()
+            #tract.ClipTractsByCoordinatesWithShaders(current_slice_pos = self.axialSlider.value(), current_axis = 2, current_slice_thickness = 0.1)    
         self.iren.Render()
 
     def ApplyROIsToTracts(self):
