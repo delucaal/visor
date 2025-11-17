@@ -17,7 +17,7 @@ import numpy as np
 import sys
 from PyQt5 import QtWidgets, uic
 from PyQt5 import Qt
-from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtWidgets import QFileDialog, QApplication
 
 from fury import actor,colormap
 
@@ -29,6 +29,8 @@ from VisorUtils.SimpleThreading import MethodInBackground
 from VisorUtils.ObjectsManagement import ObjectsManager
 from VisorUtils.IOManager import VisorIO
 from VisorUtils.VisorObjects import ROIObject, ImageObject, TractographyObject
+
+from VisorUI.VisorVolumeControlsUI import VisorVolumeControlsUI
 
 class VisorMainAppQt(QtWidgets.QMainWindow):
     window_open = False
@@ -49,12 +51,9 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.show()
         self.iren.Start()
         self.setAcceptDrops(True)
-        # self.OpenWindow()
         
     def _link_qt_objects(self):
         self.renderFrame = self.findChild(QtWidgets.QFrame,'RenderFrame')
-        self.loadVolumeButton = self.findChild(QtWidgets.QPushButton,'loadVolume')
-        self.unloadVolButton = self.findChild(QtWidgets.QPushButton,'unloadVolButton')        
         self.loadFODButton = self.findChild(QtWidgets.QPushButton,'loadFODButton')
         self.loadSingleTractButton = self.findChild(QtWidgets.QPushButton,'loadSingleTract')
         self.loadAllTractsButton = self.findChild(QtWidgets.QPushButton,'loadAllTracts')
@@ -66,21 +65,11 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.toggleROIButton = self.findChild(QtWidgets.QPushButton,'toggleROIButton')
 
         self.tractsListWidget = self.findChild(QtWidgets.QListWidget,'tractsList')
-        self.volumesListWidget = self.findChild(QtWidgets.QListWidget,'volumesListWidget')
         self.roisListWidget = self.findChild(QtWidgets.QListWidget,'ROIsListWidget')
 
+        self.rightBarWidget = self.findChild(QtWidgets.QWidget,'tabWidget')
         self.tractPropertiesContainer = self.findChild(QtWidgets.QTabWidget,'tractPropertiesContainer')
-        self.axialSlider = self.findChild(QtWidgets.QSlider,'axialSlider')
-        self.axialEdit = self.findChild(QtWidgets.QLineEdit,'axialEdit')
-        self.coronalSlider = self.findChild(QtWidgets.QSlider,'coronalSlider')
-        self.coronalEdit = self.findChild(QtWidgets.QLineEdit,'coronalEdit')
-        self.sagittalSlider = self.findChild(QtWidgets.QSlider,'sagittalSlider')
-        self.sagittalEdit = self.findChild(QtWidgets.QLineEdit,'sagittalEdit')
-        self.volTransparencySlider = self.findChild(QtWidgets.QSlider,'volTransparencySlider')
-        self.volMinValSlider = self.findChild(QtWidgets.QSlider,'volMinValSlider')
-        self.volMaxValSlider = self.findChild(QtWidgets.QSlider,'volMaxValSlider')
-        self.volMinValEdit = self.findChild(QtWidgets.QLineEdit,'volMinValEdit')
-        self.volMaxValEdit = self.findChild(QtWidgets.QLineEdit,'volMaxValEdit')
+
         self.fodSubsampSlider = self.findChild(QtWidgets.QSlider,'fodSubsampSlider')
         self.tractsSubsamplingSlider = self.findChild(QtWidgets.QSlider,'subsamplingSlider')
         
@@ -99,16 +88,6 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         
         self.roiListWidget = self.findChild(QtWidgets.QListWidget,'ROIsListWidget')
         
-        self.volColormapBox = self.findChild(QtWidgets.QComboBox,'volColormapBox')
-        
-        for ij in self.available_colormaps:
-            self.volColormapBox.addItem(ij)
-        
-        self.axialImageCheckBox = self.findChild(QtWidgets.QCheckBox,'axialImageCheckBox')
-        self.coronalImageCheckBox = self.findChild(QtWidgets.QCheckBox,'coronalImageCheckBox')
-        self.sagittalImageCheckBox = self.findChild(QtWidgets.QCheckBox,'sagittalImageCheckBox')
-        self.highlightedOnlyCheckbox = self.findChild(QtWidgets.QCheckBox,'highlightedOnlyCheckbox')
-        
         self.Xspinbox = self.findChild(QtWidgets.QSpinBox,'XspinBox')
         self.Yspinbox = self.findChild(QtWidgets.QSpinBox,'YspinBox')
         self.Zspinbox = self.findChild(QtWidgets.QSpinBox,'ZspinBox')
@@ -117,11 +96,11 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.ROIsTreeWidget = self.findChild(QtWidgets.QTreeWidget,'ROIsTreeWidget')
         #self.tractPropertiesContainer.setVisible(False)
         
+        self.volumeControlsUI = VisorVolumeControlsUI(self)
+        
     def _link_qt_actions(self):
         self.loadFODButton.clicked.connect(self._load_FOD_clicked)
         self.deleteFODButton.clicked.connect(self._delete_FOD_button)
-        self.loadVolumeButton.clicked.connect(self._load_volume_clicked)
-        self.unloadVolButton.clicked.connect(self._unload_volume_clicked)
         self.loadSingleTractButton.clicked.connect(self._file_clicked)
         self.loadAllTractsButton.clicked.connect(self._all_files_clicked)
         self.deleteAllTractsButton.clicked.connect(self._delete_all_tracts)
@@ -134,22 +113,8 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.toggleClipButton.clicked.connect(self._clip_toggle_button)
 
         self.tractsListWidget.itemClicked.connect(self._track_clicked)
-        self.volumesListWidget.itemClicked.connect(self._volume_clicked)
         self.roiListWidget.itemClicked.connect(self._roi_clicked)
         
-        self.volColormapBox.activated.connect(self._volColormapSelected)
-
-        self.axialSlider.valueChanged.connect(self._axial_slider_moved)
-        self.axialEdit.editingFinished.connect(self._axial_slider_edit)
-        self.coronalSlider.valueChanged.connect(self._coronal_slider_moved)
-        self.sagittalSlider.valueChanged.connect(self._sagittal_slider_moved)
-        
-        self.volTransparencySlider.valueChanged.connect(self._transparency_slider_moved)
-        self.volMinValSlider.valueChanged.connect(self._intensity_slider_moved)
-        self.volMaxValSlider.valueChanged.connect(self._intensity_slider_moved)
-        self.volMinValEdit.editingFinished.connect(self._intensity_edit)
-        self.volMaxValEdit.editingFinished.connect(self._intensity_edit)
-                
         self.fodSubsampSlider.valueChanged.connect(self._fod_subsamp_slider_moved)
 
         self.tractColRedSlider.valueChanged.connect(self._tract_color_slider_changed)
@@ -162,11 +127,6 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.yClipSlider.valueChanged.connect(self._y_clip_slider_moved)
         self.xClipSlider.valueChanged.connect(self._x_clip_slider_moved)
         
-        self.axialImageCheckBox.stateChanged.connect(self._axialimage_checkbox_state_changed)
-        self.coronalImageCheckBox.stateChanged.connect(self._coronalimage_checkbox_state_changed)
-        self.sagittalImageCheckBox.stateChanged.connect(self._sagittalimage_checkbox_state_changed)
-        self.highlightedOnlyCheckbox.stateChanged.connect(self._highlight_checkbox_state_changed)
-        
         self.tractsSubsamplingSlider.valueChanged.connect(self._tracts_subsampling_slider_moved)
         
         self.Xspinbox.valueChanged.connect(self._roi_x_slider_changed)
@@ -174,25 +134,24 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.Zspinbox.valueChanged.connect(self._roi_z_slider_changed)
         self.Sspinbox.valueChanged.connect(self._roi_size_slider_changed)
         
+        self.volumeControlsUI._link_qt_actions()
+        
     def _setup_ui(self):
         print('_setup_ui')
         if(self.cdir == ''):
             self.cdir = os.getcwd()
 
-        self.axial_slice = 0
-        self.sagittal_slice = 0
-        self.coronal_slice = 0
         self.fod_subsamp = 1
-        self.current_image = 0
+
         self.current_roi = 0
         self.target_vs = [1,1,1]
         
-        self.show_axial_plane = True
-        self.show_coronal_plane = True
-        self.show_sagittal_plane = True
-
         self._link_qt_objects()        
         self._link_qt_actions()
+        
+        with open("dark_theme.qss", "r") as f:
+            qss = f.read()
+        self.setStyleSheet(qss)        
         
         self.vtkWidget = QVTKRenderWindowInteractor(self.renderFrame)       
         self.vl = Qt.QVBoxLayout()
@@ -200,9 +159,12 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.scene = vtk.vtkRenderer()
         self.vtkWidget.GetRenderWindow().AddRenderer(self.scene)
         self.scene.ResetCamera()
-        from vtkmodules.vtkRenderingOpenGL2 import vtkOpenGLRenderWindow
-        self.vtkWidget.GetRenderWindow().SetDebug(True)
-        self.scene.SetDebug(True)
+        #from vtkmodules.vtkRenderingOpenGL2 import vtkOpenGLRenderWindow
+        #self.vtkWidget.GetRenderWindow().SetDebug(True)
+        #self.scene.SetDebug(True)
+        
+        #self.rightBarWidget.setStyleSheet("QTabWidget::pane, QWidget { padding:0; margin:0; }")
+        self.rightBarWidget.setContentsMargins(0, 0, 0, 0)
         
         self.iren = self.vtkWidget.GetRenderWindow().GetInteractor()
         self.renderFrame.setLayout(self.vl)
@@ -239,34 +201,6 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         #self.scene.AddLight(scene_light)         
         
         #self._add_sphere_roi(0)
-        #self._add_sphere_roi(0)
-        #points = vtk.vtkPoints()
-        #lines = vtk.vtkCellArray()
-        #lines.InsertNextCell(3)
-        #points.InsertNextPoint((-15,-15,-15))
-        #lines.InsertCellPoint(0)
-        #points.InsertNextPoint((0,0,0))
-        #lines.InsertCellPoint(1)
-        #points.InsertNextPoint((15,15,15))
-        #lines.InsertCellPoint(2)
-        #data = vtk.vtkPolyData()
-        #data.SetPoints(points)
-        #data.SetLines(lines)
-        #self.test_line_s = data
-        #self.test_line_source = vtk.vtkPolyLineSource()
-        #self.test_line_source.SetNumberOfPoints(2)
-        #self.test_line_source.SetPoints(points)
-        #self.test_line_source.SetInputData(data)
-        #self.test_line_source.SetOutput(data)
-
-        #vtkm = vtk.vtkPolyDataMapper()
-        #vtkm.SetInputConnection(self.test_line_source.GetOutputPort())#SetInputDataObject(data)
-        #vtka = vtk.vtkActor()
-        #vtka.SetMapper(vtkm)
-        #self.scene.AddActor(vtka)
-        #self.test_line_mapper = vtkm
-                        
-        #ObjectsManager.rois_list[-1].source.SetCenter((-5,-5,0))
         
         self.axes = vtk.vtkAxesActor()
         self.axes.SetTotalLength(400, 400, 400)  # length of X, Y, Z axes
@@ -391,6 +325,8 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
     def _tracts_subsampling_slider_moved(self,_item):
         #print('_tracts_subsampling_slider_moved ' + str(self.tractsSubsamplingSlider.value()))
         cR = self.tractsListWidget.currentRow()
+        if(len(ObjectsManager.tracts_list) == 0 or cR > len(ObjectsManager.tracts_list)-1):
+            return
         cR = ObjectsManager.tracts_list[cR]    
         factor = self.tractsSubsamplingSlider.value()
         if(factor < 1):
@@ -504,32 +440,32 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.iren.Render()
                                                         
     ## Volume related actions
-    def _volume_clicked(self,_item):
-        cR = self.volumesListWidget.currentRow()
-        print('volume_clicked ' + str(cR))
-        previous_image = self.current_image
-        self.current_image = cR
-        self.volMinValSlider.setValue(ObjectsManager.images_list[self.current_image].minVal)
-        self.volMaxValSlider.setValue(ObjectsManager.images_list[self.current_image].maxVal)
-        self.volTransparencySlider.setValue(ObjectsManager.images_list[self.current_image].alpha)
-        self.volColormapBox.setCurrentIndex(self.available_colormaps.index(ObjectsManager.images_list[self.current_image].colormap))
-        self.UpdateImageSliders(which_image=self.current_image,previous_image=previous_image)
-        self.UpdateImageSlice(which_image=self.current_image)
+    #def _volume_clicked(self,_item):
+    #    cR = self.volumesListWidget.currentRow()
+    #    print('volume_clicked ' + str(cR))
+    #    previous_image = self.current_image
+    #    self.current_image = cR
+    #    self.volMinValSlider.setValue(ObjectsManager.images_list[self.current_image].minVal)
+    #    self.volMaxValSlider.setValue(ObjectsManager.images_list[self.current_image].maxVal)
+    #    self.volTransparencySlider.setValue(ObjectsManager.images_list[self.current_image].alpha)
+    #    self.volColormapBox.setCurrentIndex(self.available_colormaps.index(ObjectsManager.images_list[self.current_image].colormap))
+    #    self.UpdateImageSliders(which_image=self.current_image,previous_image=previous_image)
+    #    self.UpdateImageSlice(which_image=self.current_image)
         
-    def _unload_volume_clicked(self,_item):
-        cR = self.volumesListWidget.currentRow()
-        if(cR >= 0 and cR < len(ObjectsManager.images_list)):
-            if(len(ObjectsManager.images_list) == 1):
-                self.scene.RemoveActor(self.axial_slice)
-                self.scene.RemoveActor(self.coronal_slice)
-                self.scene.RemoveActor(self.sagittal_slice)
-                self.axial_slice = 0
-                self.coronal_slice = 0
-                self.sagittal_slice = 0
-                self.target_vs = 0
-            ObjectsManager.RemoveImageObject(cR)
-            self.volumesListWidget.takeItem(cR)
-            self.volumesListWidget.setCurrentRow(0)
+    #def _unload_volume_clicked(self,_item):
+    #    cR = self.volumesListWidget.currentRow()
+    #    if(cR >= 0 and cR < len(ObjectsManager.images_list)):
+    #        if(len(ObjectsManager.images_list) == 1):
+    #            self.scene.RemoveActor(self.axial_slice)
+    #            self.scene.RemoveActor(self.coronal_slice)
+    #            self.scene.RemoveActor(self.sagittal_slice)
+    #            self.axial_slice = 0
+    #            self.coronal_slice = 0
+    #            self.sagittal_slice = 0
+    #            self.target_vs = 0
+    #        ObjectsManager.RemoveImageObject(cR)
+    #        self.volumesListWidget.takeItem(cR)
+    #        self.volumesListWidget.setCurrentRow(0)
         
     def _file_clicked(self, _button):
         print('Clicked')
@@ -542,144 +478,10 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
             if(Q == '.mat' or Q == '.MAT'):
                 self.LoadAndDisplayTract(fileName,colorby='fe_seg')
             # A = self.mymenu.get_file_names()
-        # SEL = self.mymenu.current_directory + '/' + self.mymenu.listbox.selected[0];
-        
-        
-    def _load_volume_clicked(self,_button):
-        print('Load volume')
-        options = QFileDialog.Options()
-        options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","All Files (*)", options=options)
-        if fileName:
-            print(fileName)
-            Q = fileName[len(fileName)-4:len(fileName)]
-            if(Q == '.nii' or Q == '.nii.gz'):
-                self.LoadAndDisplayImage(fileName)
-
-    def _axial_slider_moved(self,_slider):
-        back_projection = ObjectsManager.images_list[self.current_image].InvertAffineFromPointWC([self.sagittalSlider.value(),
-                            self.coronalSlider.value(),self.axialSlider.value()])
-        #z = self.axial_slice.shape[2]*(self.axialSlider.value()-self.axialSlider.minimum())/self.axialSlider.maximum() #self.axialSlider.value()-1
-        z = int(back_projection[2])
-        #if(self.axial_slice != 0 and z >= 0 and z < self.axial_slice.shape[2]):
-        #    self.axial_slice.display_extent(0, self.axial_slice.shape[0] - 1, 0, self.axial_slice.shape[1] - 1, z, z)
-        #    self.axial_slice.Modified()
-        #else:
-        #    print('Axial slice not available')
-        self.UpdateImageSliceAxial(z)
-            
-        if(len(ObjectsManager.fod_list) > 0):
-            args=(z,self.fod_subsamp)
-            # self.fod_list[0].displayAxialFODs(z,subsamp_fac=8)
-            # MethodInBackground(ObjectsManager.fod_list[0].displayAxialFODs,args)
-            ObjectsManager.fod_list[0].displayAxialFODs(z,self.fod_subsamp)
-            ObjectsManager.fod_list[0].Modified()
-            
-        self.axialEdit.setText(str(self.axialSlider.value()))#setText(str(z))    
-        self.iren.Render()     
-                                    
-    def _coronal_slider_moved(self,_slider):
-        back_projection = ObjectsManager.images_list[self.current_image].InvertAffineFromPointWC([self.sagittalSlider.value(),
-                            self.coronalSlider.value(),self.axialSlider.value()])
-        #x = self.coronalSlider.value()-1
-        x = int(back_projection[1])
-        #if(self.coronal_slice != 0 and x >= 0 and x < self.coronal_slice.shape[1]):
-        #    self.coronal_slice.display_extent(0, self.coronal_slice.shape[0] - 1, x, x, 0, self.coronal_slice.shape[2]-1)
-        #    self.coronal_slice.Modified()
-        #else:
-        #    print('Coronal slice not available')
-        self.coronalEdit.setText(str(self.coronalSlider.value()))#str(x))    
-        self.UpdateImageSliceCoronal(x)
-        self.iren.Render()     
-                
-    def _sagittal_slider_moved(self,_slider):
-        back_projection = ObjectsManager.images_list[self.current_image].InvertAffineFromPointWC([self.sagittalSlider.value(),
-                            self.coronalSlider.value(),self.axialSlider.value()])
-        #x = self.sagittalSlider.value()-1
-        x = int(back_projection[0])
-        #if(self.sagittal_slice != 0 and x >= 0 and x < self.sagittal_slice.shape[0]):
-        #    self.sagittal_slice.display_extent(x, x, 0, self.sagittal_slice.shape[1] - 1, 0, self.sagittal_slice.shape[2]-1)
-        #    self.sagittal_slice.Modified()
-        #else:
-        #    print('Sagittal slice not available')
-        self.UpdateImageSliceSagittal(x)
-        self.sagittalEdit.setText(str(self.sagittalSlider.value()))#x))    
-        self.iren.Render()    
-        
-    def _axial_slider_edit(self):
-        val = int(self.axialEdit.text())
-        self.axialSlider.setValue(val)
-            
-    def _transparency_slider_moved(self,_slider):
-        # print('_transparency_slider_moved')
-        if(self.show_axial_plane == True and self.axial_slice != 0):
-            self.axial_slice.opacity(self.volTransparencySlider.value()/255)
-            self.axial_slice.Modified()
-        if(self.show_sagittal_plane == True and self.sagittal_slice != 0):
-            self.sagittal_slice.opacity(self.volTransparencySlider.value()/255)
-            self.sagittal_slice.Modified()
-        if(self.show_coronal_plane == True and self.coronal_slice != 0):
-            self.coronal_slice.opacity(self.volTransparencySlider.value()/255)
-            self.coronal_slice.Modified()
-            
-        ObjectsManager.images_list[self.current_image].alpha = self.volTransparencySlider.value()
-        self.iren.Render()
-    
-    def _intensity_slider_moved(self,_slider):
-        if(self.axial_slice != 0):
-            ObjectsManager.images_list[self.current_image].minVal = self.volMinValSlider.value()
-            ObjectsManager.images_list[self.current_image].maxVal = self.volMaxValSlider.value()
-            self.UpdateImageSlice(which_image=self.current_image,minclip=self.volMinValSlider.value(),
-                                              maxclip=self.volMaxValSlider.value())
-            self.volMinValEdit.setText(str(self.volMinValSlider.value()/255))
-            self.volMaxValEdit.setText(str(self.volMaxValSlider.value()/255))
-            # self.axial_slice.Modified()
-            self.iren.Render()
-    
-    def _intensity_edit(self):
-            self.volMinValSlider.setValue(int(self.volMinValEdit.text()))
-            self.volMaxValSlider.setValue(int(self.volMaxValEdit.text()))
-    
-    def _volColormapSelected(self,theNewVal):
-        if(self.current_image < len(ObjectsManager.images_list)):
-            ObjectsManager.images_list[self.current_image].colormap = self.available_colormaps[theNewVal]
-            self.UpdateImageSlice(which_image=self.current_image)            
+        # SEL = self.mymenu.current_directory + '/' + self.mymenu.listbox.selected[0];    
     
     def _fod_subsamp_slider_moved(self,_slider):
         self.fod_subsamp = int(self.fodSubsampSlider.value())
-    
-    def _highlight_checkbox_state_changed(self,_checkbox):            
-        print('_checkbox_state_changed')
-        if(self.highlightedOnlyCheckbox.isChecked()):
-            for actor in ObjectsManager.tracts_list:
-                actor.GetProperty().SetOpacity(0.2)
-                actor.Modified()
-        else:
-            for actor in ObjectsManager.tracts_list:
-                actor.GetProperty().SetOpacity(1.0)
-                actor.Modified()
-        self.iren.Render()
-        
-    def _axialimage_checkbox_state_changed(self,_checkbox):
-        if(self.axialImageCheckBox.isChecked()):
-            self.show_axial_plane = True
-        else:
-            self.show_axial_plane = False
-        self.UpdateImageSlice(which_image=self.current_image)
-        
-    def _coronalimage_checkbox_state_changed(self,_checkbox):
-        if(self.coronalImageCheckBox.isChecked()):
-            self.show_coronal_plane = True
-        else:
-            self.show_coronal_plane = False
-        self.UpdateImageSlice(which_image=self.current_image)
-
-    def _sagittalimage_checkbox_state_changed(self,_checkbox):
-        if(self.sagittalImageCheckBox.isChecked()):
-            self.show_sagittal_plane = True
-        else:
-            self.show_sagittal_plane = False
-        self.UpdateImageSlice(which_image=self.current_image)
                         
     ## FOD related actions
     def _load_FOD_clicked(self, _button):
@@ -852,161 +654,6 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         
         # self.iren.Render()
         
-    def UpdateImageSliders(self,which_image=0,previous_image=0):
-        new_image = ObjectsManager.images_list[which_image]
-        old_image = ObjectsManager.images_list[previous_image]
-        dataV = new_image.data
-        #data_aff = new_image.affine
-        
-        rmin_extent = new_image.min_extent
-        rmax_extent = new_image.max_extent
-
-        axval = self.axialSlider.value()
-        corval = self.coronalSlider.value()
-        sagval = self.sagittalSlider.value()
-            
-        if(previous_image != which_image):
-            print('Updating image sliders for image ' + str(which_image))
-            p = np.asarray([sagval,corval,axval])
-            #p_transformed = old_image.InvertAffineFromPointWC(p)
-            #p_back = new_image.ApplyAffineToPointWC(p_transformed)
-            p_back = p 
-            sagval = int(p_back[0])
-            corval = int(p_back[1])
-            axval = int(p_back[2])
-        
-        #z = int(np.round(dataV.shape[2]/2))
-        #cval = self.axialSlider.value()
-        self.axialSlider.setMinimum(rmin_extent[2])
-        self.axialSlider.setMaximum(rmax_extent[2])
-        if(axval < rmin_extent[2] or axval > rmax_extent[2]):
-            self.axialSlider.setValue(int((rmin_extent[2]+rmax_extent[2])/2)+1)
-        else:
-            self.axialSlider.setValue(axval)
-
-        #x = int(np.round(dataV.shape[1]/2))
-        self.coronalSlider.setMinimum(rmin_extent[1])
-        #self.coronalSlider.setMaximum(dataV.shape[1])
-        self.coronalSlider.setMaximum(rmax_extent[1])
-        if(corval < rmin_extent[1] or corval > rmax_extent[1]):
-            self.coronalSlider.setValue(int((rmin_extent[1]+rmax_extent[1])/2)+1)
-        else:
-            self.coronalSlider.setValue(corval)
-
-        #y = int(np.round(dataV.shape[0]/2))
-        self.sagittalSlider.setMinimum(rmin_extent[0])
-        #self.sagittalSlider.setMaximum(dataV.shape[0])
-        self.sagittalSlider.setMaximum(rmax_extent[0])
-        if(sagval < rmin_extent[0] or sagval > rmax_extent[0]):
-            self.sagittalSlider.setValue(int((rmin_extent[0]+rmax_extent[0])/2)+1)
-        else:
-            self.sagittalSlider.setValue(sagval)
-        
-        minV = int(dataV.min()*255)
-        maxV = int(dataV.max()*255)
-        self.volMinValSlider.setMinimum(minV)
-        self.volMinValSlider.setMaximum(maxV)
-        self.volMinValSlider.setValue(minV)
-
-        self.volMaxValSlider.setMinimum(minV)
-        self.volMaxValSlider.setMaximum(maxV)
-        self.volMaxValSlider.setValue(maxV)        
-
-        self.volMinValEdit.setText(str(minV/255))
-        self.volMaxValEdit.setText(str(maxV/255))
-                
-    def LoadAndDisplayImage(self, filename, minclip=0,maxclip=255):
-        fparts = filename.split("/")
-        if(len(ObjectsManager.images_list) == 0):
-            tvs = 0
-        else:
-            tvs = self.target_vs
-            
-        new_image = ImageObject(filename, fparts[-1], target_vs=tvs, minVal=0, maxVal=255, alpha=255, colormap='gray')
-        if(type(tvs) == int or type(tvs) == float):
-            self.target_vs = np.diag(new_image.affine)
-        
-        print('LoadAndDisplayImage')
-        print(new_image.affine)
-        
-        ObjectsManager.AddImageObject(new_image)
-
-        self.volTransparencySlider.setMinimum(0)
-        self.volTransparencySlider.setMaximum(255)
-        self.volTransparencySlider.setValue(255)
-
-        self.volumesListWidget.addItem(fparts[-1])
-        self.current_image = len(ObjectsManager.images_list)-1
-        self.volumesListWidget.setCurrentRow(self.current_image)
-        self.UpdateImageSliders(which_image=self.current_image)
-        self.UpdateImageSlice(which_image=self.current_image)
-
-    def UpdateImageSliceAxial(self,z):
-            if(self.axial_slice != 0 and z >= 0 and z < self.axial_slice.shape[2]):
-                self.axial_slice.display_extent(0, self.axial_slice.shape[0] - 1, 0, self.axial_slice.shape[1] - 1, z, z)
-                self.axial_slice.Modified()
-            else:
-                print('Axial slice not available')
-    
-    def UpdateImageSliceCoronal(self,x):             
-        if(self.coronal_slice != 0 and x >= 0 and x < self.coronal_slice.shape[1]):
-            self.coronal_slice.display_extent(0, self.coronal_slice.shape[0] - 1, x, x, 0, self.coronal_slice.shape[2]-1)
-            self.coronal_slice.Modified()
-        else:
-            print('Coronal slice not available')
-           
-    def UpdateImageSliceSagittal(self,y):
-        if(self.sagittal_slice != 0 and y >= 0 and y < self.sagittal_slice.shape[0]):
-            self.sagittal_slice.display_extent(y, y, 0, self.sagittal_slice.shape[1] - 1, 0, self.sagittal_slice.shape[2]-1)
-            self.sagittal_slice.Modified()
-        else:
-            print('Sagittal slice not available')
-
-    def UpdateImageSlice(self, which_image=0, minclip=0,maxclip=255):   
-        print('UpdateImageSlice ' + str(which_image))
-        if(self.axial_slice != 0):
-            self.scene.RemoveActor(self.axial_slice)
-        if(self.coronal_slice != 0):
-            self.scene.RemoveActor(self.coronal_slice)
-        if(self.sagittal_slice != 0):
-            self.scene.RemoveActor(self.sagittal_slice)
-            
-        ObjectsManager.images_list[which_image].UpdateMinMax(minclip=self.volMinValSlider.value(),
-            maxclip=self.volMaxValSlider.value())    
-        ObjectsManager.images_list[which_image].UpdateLUT()    
-        
-        dataV = ObjectsManager.images_list[which_image].data
-        data_aff = ObjectsManager.images_list[which_image].affine        
-        minV = ObjectsManager.images_list[which_image].minVal
-        maxV = ObjectsManager.images_list[which_image].maxVal
-        lut = ObjectsManager.images_list[which_image].lut
-        
-        #extents = ObjectsManager.images_list[which_image].max_extent # np.abs(np.matmul(data_aff[0:3,0:3],dataV.shape)).astype(int)
-        back_projection = ObjectsManager.images_list[which_image].InvertAffineFromPointWC([self.sagittalSlider.value(),
-                            self.coronalSlider.value(),self.axialSlider.value()])
-        
-        if(self.show_axial_plane == True):
-            self.axial_slice = actor.slicer(dataV,affine=data_aff,value_range=(minV,maxV),lookup_colormap=lut)
-            self.scene.AddActor(self.axial_slice)
-            z = int(back_projection[2])
-            self.UpdateImageSliceAxial(z)
-
-        if(self.show_coronal_plane == True):
-            self.coronal_slice = actor.slicer(dataV,affine=data_aff,value_range=(minV,maxV),lookup_colormap=lut)
-            self.scene.AddActor(self.coronal_slice)
-            x = int(back_projection[1])
-            self.UpdateImageSliceCoronal(x)
-            
-        if(self.show_sagittal_plane == True):
-            self.sagittal_slice = actor.slicer(dataV,affine=data_aff,value_range=(minV,maxV),lookup_colormap=lut)
-            self.scene.AddActor(self.sagittal_slice)
-            y = int(back_projection[0])
-            self.UpdateImageSliceSagittal(y)
-
-        #self.scene.ResetCamera()
-        self.scene.ResetCameraClippingRange()
-        self.iren.Render()
-       
     def LoadFODandDisplay(self, filename):
 
         fA = visorFODActor()
@@ -1070,7 +717,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         for f in files:
             print(f)
             if('.nii' in f):
-                self.LoadAndDisplayImage(f)
+                self.volumeControlsUI.LoadAndDisplayImage(f)
             elif('.mat' in f or '.trk' in f or '.tck' in f or '.vtk' in f):
                 self.LoadAndDisplayTract(f)
                 

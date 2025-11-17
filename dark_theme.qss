@@ -54,3 +54,30 @@ QSlider::handle:horizontal {
     margin: -5px 0;
     border-radius: 7px;
 }
+
+/* Sfondo chiaro per tab normali */
+QTabBar::tab {
+    background: #dcdcdc;
+    color: #000 !important;
+}
+
+/* Tab selezionata */
+QTabBar::tab:selected {
+    background: #ffffff;
+    color: #000 !important;
+}
+
+/* Hover */
+QTabBar::tab:hover {
+    background: #e8e8e8;
+    color: #000 !important;
+}
+
+/* Forza colore scuro del testo in TUTTI gli stati */
+QTabBar::tab,
+QTabBar::tab:selected,
+QTabBar::tab:hover,
+QTabBar::tab:selected:hover,
+QTabBar::tab:focus {
+    color: #000 !important;
+}
