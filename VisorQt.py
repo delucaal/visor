@@ -18,6 +18,7 @@ import sys
 from PyQt5 import QtWidgets, uic
 from PyQt5 import Qt
 from PyQt5.QtWidgets import QFileDialog, QApplication
+import qdarkstyle
 
 from fury import actor,colormap
 
@@ -31,13 +32,13 @@ from VisorUtils.IOManager import VisorIO
 from VisorUtils.VisorObjects import ROIObject, ImageObject, TractographyObject
 
 from VisorUI.VisorVolumeControlsUI import VisorVolumeControlsUI
+from VisorUI.VisorTractControlsUI import VisorTractControlsUI
 
 class VisorMainAppQt(QtWidgets.QMainWindow):
     window_open = False
     current_actor = 0
     current_actor_properties = 0
     cdir = ''
-    available_colormaps = ('gray','viridis','plasma','inferno')
     
     def __init__(self):
         print('init')
@@ -55,36 +56,13 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
     def _link_qt_objects(self):
         self.renderFrame = self.findChild(QtWidgets.QFrame,'RenderFrame')
         self.loadFODButton = self.findChild(QtWidgets.QPushButton,'loadFODButton')
-        self.loadSingleTractButton = self.findChild(QtWidgets.QPushButton,'loadSingleTract')
-        self.loadAllTractsButton = self.findChild(QtWidgets.QPushButton,'loadAllTracts')
-        self.deleteAllTractsButton = self.findChild(QtWidgets.QPushButton,'deleteAllTracts')
-        self.deleteOneTractButton = self.findChild(QtWidgets.QPushButton,'deleteOneTractButton')
-        self.deleteFODButton = self.findChild(QtWidgets.QPushButton,'deleteFODButton')
-        self.toggleClipButton = self.findChild(QtWidgets.QPushButton,'toggleClipButton')
-        self.deleteROIButton = self.findChild(QtWidgets.QPushButton,'deleteROIButton')
-        self.toggleROIButton = self.findChild(QtWidgets.QPushButton,'toggleROIButton')
 
-        self.tractsListWidget = self.findChild(QtWidgets.QListWidget,'tractsList')
         self.roisListWidget = self.findChild(QtWidgets.QListWidget,'ROIsListWidget')
 
         self.rightBarWidget = self.findChild(QtWidgets.QWidget,'tabWidget')
         self.tractPropertiesContainer = self.findChild(QtWidgets.QTabWidget,'tractPropertiesContainer')
 
         self.fodSubsampSlider = self.findChild(QtWidgets.QSlider,'fodSubsampSlider')
-        self.tractsSubsamplingSlider = self.findChild(QtWidgets.QSlider,'subsamplingSlider')
-        
-        self.tractColRedSlider = self.findChild(QtWidgets.QSlider,'tractColRedSlider')
-        self.tractColGreenSlider = self.findChild(QtWidgets.QSlider,'tractColGreenSlider')
-        self.tractColBlueSlider = self.findChild(QtWidgets.QSlider,'tractColBlueSlider')
-        self.tractColAlphaSlider = self.findChild(QtWidgets.QSlider,'tractColAlphaSlider')
-        self.tractThickSlider = self.findChild(QtWidgets.QSlider,'tractThickSlider')
-        self.tractColDECButton = self.findChild(QtWidgets.QPushButton,'tractColDECButton')
-        self.hideShowAllTractsButton = self.findChild(QtWidgets.QPushButton,'hideShowAllTractsButton')        
-        self.sphereROIButton = self.findChild(QtWidgets.QPushButton,'sphereROIButton')
-        self.clipThickSlider = self.findChild(QtWidgets.QSlider,'clipThickSlider')
-        self.zClipSlider = self.findChild(QtWidgets.QSlider,'zClipSlider')
-        self.yClipSlider = self.findChild(QtWidgets.QSlider,'yClipSlider')
-        self.xClipSlider = self.findChild(QtWidgets.QSlider,'xClipSlider')
         
         self.roiListWidget = self.findChild(QtWidgets.QListWidget,'ROIsListWidget')
         
@@ -93,48 +71,37 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.Zspinbox = self.findChild(QtWidgets.QSpinBox,'ZspinBox')
         self.Sspinbox = self.findChild(QtWidgets.QSpinBox,'SspinBox')
         
+        self.sphereROIButton = self.findChild(QtWidgets.QPushButton,'sphereROIButton')
+        self.deleteROIButton = self.findChild(QtWidgets.QPushButton,'deleteROIButton')
+        self.toggleROIButton = self.findChild(QtWidgets.QPushButton,'toggleROIButton')
+        
+        self.deleteFODButton = self.findChild(QtWidgets.QPushButton,'deleteFODButton')
+        
         self.ROIsTreeWidget = self.findChild(QtWidgets.QTreeWidget,'ROIsTreeWidget')
         #self.tractPropertiesContainer.setVisible(False)
         
         self.volumeControlsUI = VisorVolumeControlsUI(self)
+        self.tractControlsUI = VisorTractControlsUI(self)
         
     def _link_qt_actions(self):
         self.loadFODButton.clicked.connect(self._load_FOD_clicked)
         self.deleteFODButton.clicked.connect(self._delete_FOD_button)
-        self.loadSingleTractButton.clicked.connect(self._file_clicked)
-        self.loadAllTractsButton.clicked.connect(self._all_files_clicked)
-        self.deleteAllTractsButton.clicked.connect(self._delete_all_tracts)
-        self.deleteOneTractButton.clicked.connect(self._delete_one_tract)
-        self.tractColDECButton.clicked.connect(self._tract_color_dec)
-        self.sphereROIButton.clicked.connect(self._add_sphere_roi)
-        self.deleteROIButton.clicked.connect(self._delete_ROI_button)
-        self.toggleROIButton.clicked.connect(self._toggle_ROI_button)
-        self.hideShowAllTractsButton.clicked.connect(self._hide_show_all_tracts_button)
-        self.toggleClipButton.clicked.connect(self._clip_toggle_button)
-
-        self.tractsListWidget.itemClicked.connect(self._track_clicked)
+        
         self.roiListWidget.itemClicked.connect(self._roi_clicked)
         
         self.fodSubsampSlider.valueChanged.connect(self._fod_subsamp_slider_moved)
-
-        self.tractColRedSlider.valueChanged.connect(self._tract_color_slider_changed)
-        self.tractColGreenSlider.valueChanged.connect(self._tract_color_slider_changed)
-        self.tractColBlueSlider.valueChanged.connect(self._tract_color_slider_changed)
-        self.tractColAlphaSlider.valueChanged.connect(self._tract_thick_slider_changed)
-        self.tractThickSlider.valueChanged.connect(self._tract_thick_slider_changed)
-        self.clipThickSlider.valueChanged.connect(self._clip_thickness_slider_moved)
-        self.zClipSlider.valueChanged.connect(self._z_clip_slider_moved)
-        self.yClipSlider.valueChanged.connect(self._y_clip_slider_moved)
-        self.xClipSlider.valueChanged.connect(self._x_clip_slider_moved)
-        
-        self.tractsSubsamplingSlider.valueChanged.connect(self._tracts_subsampling_slider_moved)
         
         self.Xspinbox.valueChanged.connect(self._roi_x_slider_changed)
         self.Yspinbox.valueChanged.connect(self._roi_y_slider_changed)
         self.Zspinbox.valueChanged.connect(self._roi_z_slider_changed)
         self.Sspinbox.valueChanged.connect(self._roi_size_slider_changed)
+
+        self.sphereROIButton.clicked.connect(self._add_sphere_roi)
+        self.deleteROIButton.clicked.connect(self._delete_ROI_button)
+        self.toggleROIButton.clicked.connect(self._toggle_ROI_button)
         
         self.volumeControlsUI._link_qt_actions()
+        self.tractControlsUI._link_qt_actions()
         
     def _setup_ui(self):
         print('_setup_ui')
@@ -149,9 +116,9 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self._link_qt_objects()        
         self._link_qt_actions()
         
-        with open("dark_theme.qss", "r") as f:
-            qss = f.read()
-        self.setStyleSheet(qss)        
+        #with open("dark_theme.qss", "r") as f:
+        #    qss = f.read()
+        self.setStyleSheet(qdarkstyle.load_stylesheet())        
         
         self.vtkWidget = QVTKRenderWindowInteractor(self.renderFrame)       
         self.vl = Qt.QVBoxLayout()
@@ -249,136 +216,12 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         actor = picker.GetActor()
         if actor:
             self.ApplyROIsToTracts()
-            
-    ## Tract related actions    
-    def _track_clicked(self, _item):
-        cR = self.tractsListWidget.currentRow()
-        self.current_actor = ObjectsManager.tracts_list[cR].actor
-        self.current_actor_properties = vtk.vtkProperty()
-        self.current_actor_properties.DeepCopy(self.current_actor.GetProperty())
-        self.current_actor.GetProperty().SetOpacity(1.0)
-        self.iren.Render()
-
-        print('_track_clicked ' + str(cR))
-        #self.tractPropertiesContainer.setVisible(True)
-        
-        # Ensure tracts are only inspected and not moved
-        self._interactor_camera()
-            
-    def _tract_color_slider_changed(self,_item):
-        # if(self.current_actor != 0):
-        print('_tract_color_slider_changed ' + str(self.tractColRedSlider.value()))
-        cR = self.tractsListWidget.currentRow()
-        cR = ObjectsManager.tracts_list[cR]
-        cR.SetColorSingle(red=self.tractColRedSlider.value(),
-                                                 green=self.tractColGreenSlider.value(),
-                                                 blue=self.tractColBlueSlider.value())
-        cR.actor.GetProperty().SetOpacity(float(self.tractColAlphaSlider.value())/255.0)
-        if(self.current_actor_properties != 0):
-            self.current_actor_properties.DeepCopy(cR.actor.GetProperty())
-        cR.actor.Modified()
-        self.iren.Render()
-
-    def _tract_color_dec(self,_button):
-        print('_tract_color_dec')
-        cR = self.tractsListWidget.currentRow()
-        cR = ObjectsManager.tracts_list[cR]
-        cR.SetColorDEC()
-        cR.actor.Modified()
-        self.iren.Render()
-
-    def _tract_thick_slider_changed(self,_item):
-        # if(self.current_actor != 0):
-        cR = self.tractsListWidget.currentRow()
-        cR = ObjectsManager.tracts_list[cR]    
-        cR.actor.GetProperty().SetLineWidth(self.tractThickSlider.value())
-        cR.actor.GetProperty().SetOpacity(float(self.tractColAlphaSlider.value())/255.0)
-        if(self.current_actor_properties != 0):
-            self.current_actor_properties.DeepCopy(cR.actor.GetProperty())
-        cR.actor.Modified()
-        self.iren.Render()
-        
-    def _clip_thickness_slider_moved(self,_item):
-        print('_clip_thickness_slider_moved ' + str(self.clipThickSlider.value()))
-        for tract in ObjectsManager.tracts_list:
-            tract.ClipTractsByCoordinatesWithShaders(current_slice_thickness=self.clipThickSlider.value()/1e2)
-        self.iren.Render()
-        
-    def _z_clip_slider_moved(self,_item):
-        print('_z_clip_slider_moved ' + str(self.zClipSlider.value()))
-        for tract in ObjectsManager.tracts_list:
-            tract.ClipTractsByCoordinatesWithShaders(current_slice_pos=self.zClipSlider.value()/1e2, current_axis=2, current_slice_thickness=self.clipThickSlider.value()/1e2)
-        self.iren.Render()
-        
-    def _y_clip_slider_moved(self,_item):
-        print('_y_clip_slider_moved ' + str(self.yClipSlider.value()))
-        for tract in ObjectsManager.tracts_list:
-            tract.ClipTractsByCoordinatesWithShaders(current_slice_pos=self.yClipSlider.value()/1e2, current_axis=1, current_slice_thickness=self.clipThickSlider.value()/1e2)
-        self.iren.Render()
-        
-    def _x_clip_slider_moved(self,_item):
-        print('_x_clip_slider_moved ' + str(self.xClipSlider.value()))
-        for tract in ObjectsManager.tracts_list:
-            tract.ClipTractsByCoordinatesWithShaders(current_slice_pos=self.xClipSlider.value()/1e2, current_axis=0, current_slice_thickness=self.clipThickSlider.value()/1e2)
-        self.iren.Render()
                 
-    def _tracts_subsampling_slider_moved(self,_item):
-        #print('_tracts_subsampling_slider_moved ' + str(self.tractsSubsamplingSlider.value()))
-        cR = self.tractsListWidget.currentRow()
-        if(len(ObjectsManager.tracts_list) == 0 or cR > len(ObjectsManager.tracts_list)-1):
-            return
-        cR = ObjectsManager.tracts_list[cR]    
-        factor = self.tractsSubsamplingSlider.value()
-        if(factor < 1):
-            factor = 1
-        if(factor > 1):        
-            cR.EnableUndersamplingWithFactor(factor)
-        else:
-            cR.DisableUndersampling()
-        cR.actor.Modified()
-        self.iren.Render()
-
-    def _all_files_clicked(self, _button):
-        print('Load all')
-        options = QFileDialog.Options()
-        options |= QFileDialog.DontUseNativeDialog
-        options |= QFileDialog.ShowDirsOnly
-        the_dir = QFileDialog.getExistingDirectory(self,"QFileDialog.getOpenFileName()", options=options)
-        A = os.listdir(the_dir)
-        print(A)
-        for SEL in A:
-            Q = SEL[len(SEL)-4:len(SEL)]
-            print(Q)
-            if(Q == '.mat' or Q == '.MAT'):
-                try:
-                    self.LoadAndDisplayTract(the_dir + '/' + SEL,colorby='fe_seg')
-                except:
-                    print('Skipping ' + SEL + ' due to errors')
-            
-    def _delete_all_tracts(self, _button):
-        print('delete tracts')
-        for actor in ObjectsManager.tracts_list:
-            self.scene.RemoveActor(actor.actor)
-            
-        ObjectsManager.RemoveTractographyObjects()
-        self.tractsListWidget.clear()
-        self.scene.ResetCamera()
-        self.scene.ResetCameraClippingRange()
-        
-    def _delete_one_tract(self,_button):
-        print('delete one tract')
-        sel_items = self.tractsListWidget.selectedItems()        
-        tracts_2_delete = []
-        for item in sel_items:
-            row = self.tractsListWidget.row(item)          
-            tracts_2_delete.append(row)
-        for zin in range(len(tracts_2_delete)-1,-1,-1):
-            self.tractsListWidget.takeItem(tracts_2_delete[zin])
-            self.scene.RemoveActor(ObjectsManager.tracts_list[zin].actor)
-            ObjectsManager.RemoveTractographyObject(zin)
-            
-        self.iren.Render()
-        
+    def _delete_FOD_button(self,_button):
+        if(len(ObjectsManager.fod_list) > 0):
+            self.scene.RemoveActor(ObjectsManager.fod_list[0])            
+            ObjectsManager.RemoveFODObject()
+                                    
     ## ROI related actions
     def _add_sphere_roi(self,_button):
         O = ROIObject()
@@ -438,48 +281,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         cR.source.SetRadius(size)
         cR.actor.Modified()
         self.iren.Render()
-                                                        
-    ## Volume related actions
-    #def _volume_clicked(self,_item):
-    #    cR = self.volumesListWidget.currentRow()
-    #    print('volume_clicked ' + str(cR))
-    #    previous_image = self.current_image
-    #    self.current_image = cR
-    #    self.volMinValSlider.setValue(ObjectsManager.images_list[self.current_image].minVal)
-    #    self.volMaxValSlider.setValue(ObjectsManager.images_list[self.current_image].maxVal)
-    #    self.volTransparencySlider.setValue(ObjectsManager.images_list[self.current_image].alpha)
-    #    self.volColormapBox.setCurrentIndex(self.available_colormaps.index(ObjectsManager.images_list[self.current_image].colormap))
-    #    self.UpdateImageSliders(which_image=self.current_image,previous_image=previous_image)
-    #    self.UpdateImageSlice(which_image=self.current_image)
-        
-    #def _unload_volume_clicked(self,_item):
-    #    cR = self.volumesListWidget.currentRow()
-    #    if(cR >= 0 and cR < len(ObjectsManager.images_list)):
-    #        if(len(ObjectsManager.images_list) == 1):
-    #            self.scene.RemoveActor(self.axial_slice)
-    #            self.scene.RemoveActor(self.coronal_slice)
-    #            self.scene.RemoveActor(self.sagittal_slice)
-    #            self.axial_slice = 0
-    #            self.coronal_slice = 0
-    #            self.sagittal_slice = 0
-    #            self.target_vs = 0
-    #        ObjectsManager.RemoveImageObject(cR)
-    #        self.volumesListWidget.takeItem(cR)
-    #        self.volumesListWidget.setCurrentRow(0)
-        
-    def _file_clicked(self, _button):
-        print('Clicked')
-        options = QFileDialog.Options()
-        options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","All Files (*);Python Files (*.py)", options=options)
-        if fileName:
-            print(fileName)
-            Q = fileName[len(fileName)-4:len(fileName)]
-            if(Q == '.mat' or Q == '.MAT'):
-                self.LoadAndDisplayTract(fileName,colorby='fe_seg')
-            # A = self.mymenu.get_file_names()
-        # SEL = self.mymenu.current_directory + '/' + self.mymenu.listbox.selected[0];    
-    
+                                                                    
     def _fod_subsamp_slider_moved(self,_slider):
         self.fod_subsamp = int(self.fodSubsampSlider.value())
                         
@@ -494,11 +296,6 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
             Q = fileName[len(fileName)-4:len(fileName)]
             if(Q == '.nii' or Q == 'i.gz'):
                 self.LoadFODandDisplay(fileName)
-
-    def _delete_FOD_button(self,_button):
-        if(len(ObjectsManager.fod_list) > 0):
-            self.scene.RemoveActor(ObjectsManager.fod_list[0])            
-            ObjectsManager.RemoveFODObject()
                         
     def _delete_ROI_button(self,_button):
         if(len(ObjectsManager.rois_list) > 0):
@@ -540,25 +337,6 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
                             break
             ObjectsManager.tracts_list[self.tractsListWidget.currentRow()].DeleteROIByName(ObjectsManager.rois_list[self.roiListWidget.currentRow()].Name)
         self.ApplyROIsToTracts()
-
-    def _hide_show_all_tracts_button(self,_button):
-        print('Hide/show all tracts')
-        for tract in ObjectsManager.tracts_list:
-            if(tract.actor.GetVisibility() == 1):
-                tract.actor.VisibilityOff()
-            else:
-                tract.actor.VisibilityOn()
-    
-        self.iren.Render()
-
-    def _clip_toggle_button(self,_button):
-        print('Clip toggle button')
-        #affine = ObjectsManager.images_list[self.current_image].affine
-        #coords = np.asarray([self.coronalSlider.value(),self.sagittalSlider.value(),self.axialSlider.value(),1])
-        for tract in ObjectsManager.tracts_list:
-            tract.ClipDisable()
-            #tract.ClipTractsByCoordinatesWithShaders(current_slice_pos = self.axialSlider.value(), current_axis = 2, current_slice_thickness = 0.1)    
-        self.iren.Render()
 
     def ApplyROIsToTracts(self):
         for tract in ObjectsManager.tracts_list:
@@ -671,41 +449,6 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         # self.scene.ResetCamera()
         # self.scene.ResetCameraClippingRange()
         
-
-    def LoadAndDisplayTract(self,filename,colorby='fe_seg'):
-        print('Going to load ' + filename)
-        
-        #ObjectsManager.images_list[self.current_image]
-        if(len(ObjectsManager.images_list) < 1 or self.current_image < 0):
-            print('You should first load and select a reference image')
-            affine = np.eye(4)
-        else:
-            affine = ObjectsManager.images_list[self.current_image].affine
-        if('.trk' in filename or '.vtk' in filename):
-            if(self.current_image < len(ObjectsManager.images_list)):
-                tractography = TractographyObject(filename,colorby,affine=affine,size4centering=ObjectsManager.images_list[self.current_image].data.shape)
-            else:
-                print('First load and select a reference image')
-                return
-        else:
-            tractography = TractographyObject(filename,colorby,affine=affine)
-
-        ObjectsManager.AddTractographyObject(tractography)
-        
-        self.scene.AddActor(tractography.actor)
-        if(len(ObjectsManager.tracts_list) == 1):
-            self.scene.ResetCamera()
-        self.scene.ResetCameraClippingRange()
-        
-        filename = filename.replace('\\','/')
-        filename = filename.split('/')       
-                            
-        self.tractsListWidget.addItem(filename[-1])
-        self.ROIsTreeWidget.addTopLevelItem(QtWidgets.QTreeWidgetItem([filename[-1]]))
-
-        self.iren.Render()
-        print('Done')
-
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
             event.accept()
@@ -719,7 +462,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
             if('.nii' in f):
                 self.volumeControlsUI.LoadAndDisplayImage(f)
             elif('.mat' in f or '.trk' in f or '.tck' in f or '.vtk' in f):
-                self.LoadAndDisplayTract(f)
+                self.tractControlsUI.LoadAndDisplayTract(f)
                 
     def get_scene_center(self):
         """Compute the center of the visible actors' bounding box."""

@@ -6,12 +6,13 @@ from PyQt5.QtWidgets import QFileDialog, QApplication
 
 import vtk
 from fury import actor,colormap
+import os
 
 from VisorUtils.ObjectsManagement import ObjectsManager
 from VisorUtils.VisorObjects import ROIObject, ImageObject, TractographyObject
-from VisorVolumeControlsUI import VisorVolumeControlsUI
+from VisorUI.VisorVolumeControlsUI import VisorVolumeControlsUI
 
-class VisorVolumeControlsUI(object):
+class VisorTractControlsUI(object):
     def __init__(self, parent):
         self.mainapp = parent
         
@@ -34,7 +35,7 @@ class VisorVolumeControlsUI(object):
         self.yClipSlider = parent.findChild(QtWidgets.QSlider,'yClipSlider')
         self.xClipSlider = parent.findChild(QtWidgets.QSlider,'xClipSlider')
         
-        self.tractsListWidget = self.findChild(QtWidgets.QListWidget,'tractsList')
+        self.tractsListWidget = parent.findChild(QtWidgets.QListWidget,'tractsList')
         
         
     def _link_qt_actions(self):
@@ -73,7 +74,7 @@ class VisorVolumeControlsUI(object):
         #self.tractPropertiesContainer.setVisible(True)
         
         # Ensure tracts are only inspected and not moved
-        self._interactor_camera()
+        self.mainapp._interactor_camera()
 
     def _hide_show_all_tracts_button(self,_button):
         print('Hide/show all tracts')
@@ -83,7 +84,7 @@ class VisorVolumeControlsUI(object):
             else:
                 tract.actor.VisibilityOn()
     
-        self.iren.Render()
+        self.mainapp.iren.Render()
 
     def _clip_toggle_button(self,_button):
         print('Clip toggle button')
@@ -97,7 +98,7 @@ class VisorVolumeControlsUI(object):
     def LoadAndDisplayTract(self,filename,colorby='fe_seg'):
         print('Going to load ' + filename)
         
-        current_image = VisorVolumeControlsUI.sharedInstance(self.mainapp).current_image
+        current_image = VisorVolumeControlsUI.current_image
         #ObjectsManager.images_list[self.current_image]
         if(len(ObjectsManager.images_list) < 1 or current_image < 0):
             print('You should first load and select a reference image')
@@ -133,7 +134,7 @@ class VisorVolumeControlsUI(object):
         print('Clicked')
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","All Files (*);Python Files (*.py)", options=options)
+        fileName, _ = QFileDialog.getOpenFileName(self.mainapp,"QFileDialog.getOpenFileName()", "","All Files (*);Python Files (*.py)", options=options)
         if fileName:
             print(fileName)
             Q = fileName[len(fileName)-4:len(fileName)]
@@ -147,7 +148,9 @@ class VisorVolumeControlsUI(object):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
         options |= QFileDialog.ShowDirsOnly
-        the_dir = QFileDialog.getExistingDirectory(self,"QFileDialog.getOpenFileName()", options=options)
+        the_dir = QFileDialog.getExistingDirectory(self.mainapp,"QFileDialog.getOpenFileName()", options=options)
+        if(len(the_dir) < 1):
+            return
         A = os.listdir(the_dir)
         print(A)
         for SEL in A:

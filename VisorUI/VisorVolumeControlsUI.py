@@ -18,6 +18,7 @@ class VisorVolumeControlsUI(object):
 
     def __init__(self, parent):
         self.mainapp = parent
+        self.shared = self
         
         self.axial_slice = 0
         self.coronal_slice = 0
