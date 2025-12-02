@@ -12,11 +12,29 @@ class ObjectsManager(object):
     images_list = []
     rois_list = []
     rois_groups_list = []
+    surfaces_list = []
+
+    @staticmethod
+    def AddSurfaceObject(theSurface):
+        ObjectsManager.surfaces_list.append(theSurface)
+        
+    @staticmethod
+    def RemoveSurfaceObject(zin):
+        ObjectsManager.surfaces_list.remove(ObjectsManager.surfaces_list[zin])
+        
+    @staticmethod
+    def IndexOfSurfaceObject(theActor):
+        idx = -1
+        for i in range(0,len(ObjectsManager.surfaces_list)):
+            if(ObjectsManager.surfaces_list[i].actor == theActor):
+                idx = i
+                break
+        return idx
 
     @staticmethod
     def RemoveTractographyObjects():
         ObjectsManager.fod_list = []
-        ObjectsManager.actors_list = []
+        #ObjectsManager.actors_list = []
         ObjectsManager.rois_list = []
         ObjectsManager.tracts_list = []
         ObjectsManager.rois_groups_list = []

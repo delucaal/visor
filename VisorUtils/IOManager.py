@@ -15,11 +15,12 @@ from vtk import vtkPolyDataReader
 from vtkmodules.util import numpy_support
 import vtk
 from vtk.util.numpy_support import vtk_to_numpy
+import nibabel as nib
 
 class VisorIO(object):
     
     @staticmethod
-    def LoadMATTractography(filename,max_tracts=1e10,affine=None):
+    def LoadMATTractography(filename,max_tracts=1e10,affine=None,std_reorient=True):
         t = time.time()
         MatFile = read_mat(filename,variable_names=['Tracts','TractMask','VDims'])
         elapsed = time.time() - t
@@ -32,22 +33,23 @@ class VisorIO(object):
         #Shift = affine[0:3,-1]
         Shift = affine[0:3,-1]
         # for i in range(0,min(Tracts.shape[0],max_tracts)):
-        for i in range(0,min(len(Tracts),max_tracts)):
-            P = Tracts[i]
-            # P[:,0] = TractMask.shape[0]*VD[1]-P[:,0]
-            # P[:,1] = TractMask.shape[1]*VD[0]-P[:,1]
-            P[:,0] = -P[:,0]+TractMask.shape[0]*VD[1] + Shift[1]
-            P[:,1] = -P[:,1]+TractMask.shape[1]*VD[0] + Shift[0]
-            P[:,2] = Shift[2]+P[:,2]
-            Tracts[i] = P
+        if(std_reorient):
+            for i in range(0,min(len(Tracts),max_tracts)):
+                P = Tracts[i]
+                # P[:,0] = TractMask.shape[0]*VD[1]-P[:,0]
+                # P[:,1] = TractMask.shape[1]*VD[0]-P[:,1]
+                P[:,0] = -P[:,0]+TractMask.shape[0]*VD[1] + Shift[1]
+                P[:,1] = -P[:,1]+TractMask.shape[1]*VD[0] + Shift[0]
+                P[:,2] = Shift[2]+P[:,2]
+                Tracts[i] = P
         
         return Tracts
     
     @staticmethod
-    def LoadTRKTractography(filename,max_tracts=1e10,affine=None,size4centering=None,downsampling_factor=128):
+    def LoadTRKTractography(filename,max_tracts=1e10,affine=None,size4centering=None,downsampling_factor=1,max_tracts_load=10e3):
         Tractogram = load_tractogram(filename,filename)
         
-        Tracts = Tractogram.streamlines[0:downsampling_factor:,:]
+        Tracts = Tractogram.streamlines[0:int(downsampling_factor*max_tracts_load):downsampling_factor,:]
         VD = np.diag(Tractogram.affine)[0:3]
             
         if(affine is None):
@@ -111,3 +113,47 @@ class VisorIO(object):
             count += 1
             
         return points,Lines
+    
+    def load_gifti_as_vtk_polydata(filename):
+        # Carica il GIFTI
+        gii = nib.load(filename)
+
+        # Estrai coordinate e triangoli
+        coords = None
+        faces = None
+
+        for da in gii.darrays:
+            if da.intent == 1008: #"NIFTI_INTENT_POINTSET":   # coordinate
+                coords = da.data
+            elif da.intent == 1009: #"NIFTI_INTENT_TRIANGLE": # triangoli
+                faces = da.data
+
+        if coords is None or faces is None:
+            raise ValueError("Il file GIFTI non contiene mesh (POINTSET + TRIANGLE).")
+
+        # Converte la geometria in VTK
+        points = vtk.vtkPoints()
+        points.SetNumberOfPoints(coords.shape[0])
+        for i, (x, y, z) in enumerate(coords):
+            points.SetPoint(i, float(x), float(y), float(z))
+
+        polys = vtk.vtkCellArray()
+        for tri in faces:
+            polys.InsertNextCell(3)
+            polys.InsertCellPoint(int(tri[0]))
+            polys.InsertCellPoint(int(tri[1]))
+            polys.InsertCellPoint(int(tri[2]))
+
+        # Crea un vtkPolyData
+        polydata = vtk.vtkPolyData()
+        polydata.SetPoints(points)
+        polydata.SetPolys(polys)
+
+        # Normali (opzionale ma consigliato)
+        normals = vtk.vtkPolyDataNormals()
+        normals.SetInputData(polydata)
+        normals.ConsistencyOn()
+        normals.AutoOrientNormalsOn()
+        normals.Update()
+
+        return normals.GetOutput()

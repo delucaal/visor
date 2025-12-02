@@ -47,7 +47,7 @@
        </font>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>3</number>
       </property>
       <widget class="QWidget" name="generalVolumesTab">
        <attribute name="title">
@@ -659,7 +659,7 @@
           <x>0</x>
           <y>10</y>
           <width>191</width>
-          <height>83</height>
+          <height>136</height>
          </rect>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -699,15 +699,48 @@
            </property>
           </widget>
          </item>
+         <item>
+          <widget class="QPushButton" name="hideShowAllTractsButton">
+           <property name="font">
+            <font>
+             <pointsize>11</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>Hide/Show all tracts</string>
+           </property>
+           <property name="autoDefault">
+            <bool>false</bool>
+           </property>
+           <property name="default">
+            <bool>false</bool>
+           </property>
+           <property name="flat">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="highlightedOnlyCheckbox">
+           <property name="font">
+            <font>
+             <pointsize>11</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>Highlight selected</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </widget>
        <widget class="QWidget" name="verticalLayoutWidget_7">
         <property name="geometry">
          <rect>
           <x>0</x>
-          <y>100</y>
+          <y>150</y>
           <width>192</width>
-          <height>681</height>
+          <height>631</height>
          </rect>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_9">
@@ -722,7 +755,7 @@
            <property name="minimumSize">
             <size>
              <width>0</width>
-             <height>300</height>
+             <height>200</height>
             </size>
            </property>
            <property name="maximumSize">
@@ -826,7 +859,7 @@
                <x>4</x>
                <y>9</y>
                <width>181</width>
-               <height>331</height>
+               <height>535</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_8">
@@ -837,18 +870,6 @@
                <enum>QLayout::SetMaximumSize</enum>
               </property>
               <item>
-               <widget class="QCheckBox" name="highlightedOnlyCheckbox">
-                <property name="font">
-                 <font>
-                  <pointsize>11</pointsize>
-                 </font>
-                </property>
-                <property name="text">
-                 <string>Highlight selected</string>
-                </property>
-               </widget>
-              </item>
-              <item>
                <widget class="QPushButton" name="deleteOneTractButton">
                 <property name="font">
                  <font>
@@ -857,27 +878,6 @@
                 </property>
                 <property name="text">
                  <string>Delete tract</string>
-                </property>
-                <property name="autoDefault">
-                 <bool>false</bool>
-                </property>
-                <property name="default">
-                 <bool>false</bool>
-                </property>
-                <property name="flat">
-                 <bool>false</bool>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="hideShowAllTractsButton">
-                <property name="font">
-                 <font>
-                  <pointsize>11</pointsize>
-                 </font>
-                </property>
-                <property name="text">
-                 <string>Hide/Show all tracts</string>
                 </property>
                 <property name="autoDefault">
                  <bool>false</bool>

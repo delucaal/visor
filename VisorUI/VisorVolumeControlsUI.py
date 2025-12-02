@@ -15,10 +15,11 @@ class VisorVolumeControlsUI(object):
     show_axial_plane = True
     show_coronal_plane = True
     show_sagittal_plane = True
+    shared = None
 
     def __init__(self, parent):
         self.mainapp = parent
-        self.shared = self
+        VisorVolumeControlsUI.shared = self
         
         self.axial_slice = 0
         self.coronal_slice = 0
@@ -88,6 +89,9 @@ class VisorVolumeControlsUI(object):
         cR = self.volumesListWidget.currentRow()
         if(cR >= 0 and cR < len(ObjectsManager.images_list)):
             if(len(ObjectsManager.images_list) == 1):
+                #self.axial_slice.RemoveActorFromScene()
+                #self.coronal_slice.RemoveActorFromScene()
+                #self.sagittal_slice.RemoveActorFromScene()
                 self.mainapp.scene.RemoveActor(self.axial_slice)
                 self.mainapp.scene.RemoveActor(self.coronal_slice)
                 self.mainapp.scene.RemoveActor(self.sagittal_slice)
@@ -103,19 +107,19 @@ class VisorVolumeControlsUI(object):
     def _volume_clicked(self,_item):
         cR = self.volumesListWidget.currentRow()
         print('volume_clicked ' + str(cR))
-        previous_image = self.current_image
-        self.current_image = cR
-        self.volMinValSlider.setValue(ObjectsManager.images_list[self.current_image].minVal)
-        self.volMaxValSlider.setValue(ObjectsManager.images_list[self.current_image].maxVal)
-        self.volTransparencySlider.setValue(ObjectsManager.images_list[self.current_image].alpha)
-        self.volColormapBox.setCurrentIndex(self.available_colormaps.index(ObjectsManager.images_list[self.current_image].colormap))
-        self.UpdateImageSliders(which_image=self.current_image,previous_image=previous_image)
-        self.UpdateImageSlice(which_image=self.current_image)
+        previous_image = VisorVolumeControlsUI.current_image
+        VisorVolumeControlsUI.current_image = cR
+        self.volMinValSlider.setValue(ObjectsManager.images_list[VisorVolumeControlsUI.current_image].minVal)
+        self.volMaxValSlider.setValue(ObjectsManager.images_list[VisorVolumeControlsUI.current_image].maxVal)
+        self.volTransparencySlider.setValue(ObjectsManager.images_list[VisorVolumeControlsUI.current_image].alpha)
+        self.volColormapBox.setCurrentIndex(self.available_colormaps.index(ObjectsManager.images_list[VisorVolumeControlsUI.current_image].colormap))
+        self.UpdateImageSliders(which_image=VisorVolumeControlsUI.current_image,previous_image=previous_image)
+        self.UpdateImageSlice(which_image=VisorVolumeControlsUI.current_image)
         
     def _axial_slider_moved(self,_slider):
-        if(self.current_image > len(ObjectsManager.images_list)-1):
+        if(VisorVolumeControlsUI.current_image > len(ObjectsManager.images_list)-1):
             return
-        back_projection = ObjectsManager.images_list[self.current_image].InvertAffineFromPointWC([self.sagittalSlider.value(),
+        back_projection = ObjectsManager.images_list[VisorVolumeControlsUI.current_image].InvertAffineFromPointWC([self.sagittalSlider.value(),
                             self.coronalSlider.value(),self.axialSlider.value()])
         z = int(back_projection[2])
         self.UpdateImageSliceAxial(z)
@@ -131,9 +135,9 @@ class VisorVolumeControlsUI(object):
         self.mainapp.iren.Render()            
         
     def _coronal_slider_moved(self,_slider):
-        if(self.current_image > len(ObjectsManager.images_list)-1):
+        if(VisorVolumeControlsUI.current_image > len(ObjectsManager.images_list)-1):
             return
-        back_projection = ObjectsManager.images_list[self.current_image].InvertAffineFromPointWC([self.sagittalSlider.value(),
+        back_projection = ObjectsManager.images_list[VisorVolumeControlsUI.current_image].InvertAffineFromPointWC([self.sagittalSlider.value(),
                             self.coronalSlider.value(),self.axialSlider.value()])
         x = int(back_projection[1])
         self.coronalEdit.setText(str(self.coronalSlider.value()))    
@@ -141,9 +145,9 @@ class VisorVolumeControlsUI(object):
         self.mainapp.iren.Render()     
                 
     def _sagittal_slider_moved(self,_slider):
-        if(self.current_image > len(ObjectsManager.images_list)-1):
+        if(VisorVolumeControlsUI.current_image > len(ObjectsManager.images_list)-1):
             return
-        back_projection = ObjectsManager.images_list[self.current_image].InvertAffineFromPointWC([self.sagittalSlider.value(),
+        back_projection = ObjectsManager.images_list[VisorVolumeControlsUI.current_image].InvertAffineFromPointWC([self.sagittalSlider.value(),
                             self.coronalSlider.value(),self.axialSlider.value()])
         x = int(back_projection[0])
         self.UpdateImageSliceSagittal(x)
@@ -151,9 +155,9 @@ class VisorVolumeControlsUI(object):
         self.iren.Render()            
         
     def _sagittal_slider_moved(self,_slider):
-        if(self.current_image > len(ObjectsManager.images_list)-1):
+        if(VisorVolumeControlsUI.current_image > len(ObjectsManager.images_list)-1):
             return
-        back_projection = ObjectsManager.images_list[self.current_image].InvertAffineFromPointWC([self.sagittalSlider.value(),
+        back_projection = ObjectsManager.images_list[VisorVolumeControlsUI.current_image].InvertAffineFromPointWC([self.sagittalSlider.value(),
                             self.coronalSlider.value(),self.axialSlider.value()])
         x = int(back_projection[0])
         self.UpdateImageSliceSagittal(x)
@@ -165,7 +169,7 @@ class VisorVolumeControlsUI(object):
         self.axialSlider.setValue(val)
             
     def _transparency_slider_moved(self,_slider):
-        if(self.current_image > len(ObjectsManager.images_list)-1):
+        if(VisorVolumeControlsUI.current_image > len(ObjectsManager.images_list)-1):
             return
         # print('_transparency_slider_moved')
         if(self.show_axial_plane == True and self.axial_slice != 0):
@@ -178,14 +182,14 @@ class VisorVolumeControlsUI(object):
             self.coronal_slice.opacity(self.volTransparencySlider.value()/255)
             self.coronal_slice.Modified()
             
-        ObjectsManager.images_list[self.current_image].alpha = self.volTransparencySlider.value()
+        ObjectsManager.images_list[VisorVolumeControlsUI.current_image].alpha = self.volTransparencySlider.value()
         self.mainapp.iren.Render()
     
     def _intensity_slider_moved(self,_slider):
         if(self.axial_slice != 0):
-            ObjectsManager.images_list[self.current_image].minVal = self.volMinValSlider.value()
-            ObjectsManager.images_list[self.current_image].maxVal = self.volMaxValSlider.value()
-            self.UpdateImageSlice(which_image=self.current_image,minclip=self.volMinValSlider.value(),
+            ObjectsManager.images_list[VisorVolumeControlsUI.current_image].minVal = self.volMinValSlider.value()
+            ObjectsManager.images_list[VisorVolumeControlsUI.current_image].maxVal = self.volMaxValSlider.value()
+            self.UpdateImageSlice(which_image=VisorVolumeControlsUI.current_image,minclip=self.volMinValSlider.value(),
                                               maxclip=self.volMaxValSlider.value())
             self.volMinValEdit.setText(str(self.volMinValSlider.value()/255))
             self.volMaxValEdit.setText(str(self.volMaxValSlider.value()/255))
@@ -196,40 +200,40 @@ class VisorVolumeControlsUI(object):
             self.volMaxValSlider.setValue(int(self.volMaxValEdit.text()))
     
     def _volColormapSelected(self,theNewVal):
-        if(self.current_image < len(ObjectsManager.images_list)):
-            ObjectsManager.images_list[self.current_image].colormap = self.available_colormaps[theNewVal]
-            self.UpdateImageSlice(which_image=self.current_image)            
+        if(VisorVolumeControlsUI.current_image < len(ObjectsManager.images_list)):
+            ObjectsManager.images_list[VisorVolumeControlsUI.current_image].colormap = self.available_colormaps[theNewVal]
+            self.UpdateImageSlice(which_image=VisorVolumeControlsUI.current_image)            
     
     def _axialimage_checkbox_state_changed(self,_checkbox):
         if(self.axialImageCheckBox.isChecked()):
             self.show_axial_plane = True
         else:
             self.show_axial_plane = False
-        self.UpdateImageSlice(which_image=self.current_image)
+        self.UpdateImageSlice(which_image=VisorVolumeControlsUI.current_image)
         
     def _coronalimage_checkbox_state_changed(self,_checkbox):
         if(self.coronalImageCheckBox.isChecked()):
             self.show_coronal_plane = True
         else:
             self.show_coronal_plane = False
-        self.UpdateImageSlice(which_image=self.current_image)
+        self.UpdateImageSlice(which_image=VisorVolumeControlsUI.current_image)
 
     def _sagittalimage_checkbox_state_changed(self,_checkbox):
         if(self.sagittalImageCheckBox.isChecked()):
             self.show_sagittal_plane = True
         else:
             self.show_sagittal_plane = False
-        self.UpdateImageSlice(which_image=self.current_image)        
+        self.UpdateImageSlice(which_image=VisorVolumeControlsUI.current_image)        
         
     def _highlight_checkbox_state_changed(self,_checkbox):            
         if(self.highlightedOnlyCheckbox.isChecked()):
-            for actor in ObjectsManager.tracts_list:
-                actor.GetProperty().SetOpacity(0.2)
-                actor.Modified()
+            for tract in ObjectsManager.tracts_list:
+                tract.actor.GetProperty().SetOpacity(0.2)
+                tract.actor.Modified()
         else:
-            for actor in ObjectsManager.tracts_list:
-                actor.GetProperty().SetOpacity(1.0)
-                actor.Modified()
+            for tract in ObjectsManager.tracts_list:
+                tract.actor.GetProperty().SetOpacity(1.0)
+                tract.actor.Modified()
         self.mainapp.iren.Render()
         
     def UpdateImageSliceAxial(self,z):
@@ -279,18 +283,21 @@ class VisorVolumeControlsUI(object):
         if(self.show_axial_plane == True):
             self.axial_slice = actor.slicer(dataV,affine=data_aff,value_range=(minV,maxV),lookup_colormap=lut)
             self.mainapp.scene.AddActor(self.axial_slice)
+            #self.axial_slice.AddActorToScene(self.mainapp.scene)
             z = int(back_projection[2])
             self.UpdateImageSliceAxial(z)
 
         if(self.show_coronal_plane == True):
             self.coronal_slice = actor.slicer(dataV,affine=data_aff,value_range=(minV,maxV),lookup_colormap=lut)
             self.mainapp.scene.AddActor(self.coronal_slice)
+            #self.coronal_slice.AddActorToScene(self.mainapp.scene)
             x = int(back_projection[1])
             self.UpdateImageSliceCoronal(x)
             
         if(self.show_sagittal_plane == True):
             self.sagittal_slice = actor.slicer(dataV,affine=data_aff,value_range=(minV,maxV),lookup_colormap=lut)
             self.mainapp.scene.AddActor(self.sagittal_slice)
+            #self.sagittal_slice.AddActorToScene(self.mainapp.scene)
             y = int(back_projection[0])
             self.UpdateImageSliceSagittal(y)
 
@@ -381,8 +388,8 @@ class VisorVolumeControlsUI(object):
         self.volTransparencySlider.setValue(255)
 
         self.volumesListWidget.addItem(fparts[-1])
-        self.current_image = len(ObjectsManager.images_list)-1
-        self.volumesListWidget.setCurrentRow(self.current_image)
-        self.UpdateImageSliders(which_image=self.current_image)
-        self.UpdateImageSlice(which_image=self.current_image)          
+        VisorVolumeControlsUI.current_image = len(ObjectsManager.images_list)-1
+        self.volumesListWidget.setCurrentRow(VisorVolumeControlsUI.current_image)
+        self.UpdateImageSliders(which_image=VisorVolumeControlsUI.current_image)
+        self.UpdateImageSlice(which_image=VisorVolumeControlsUI.current_image)          
             

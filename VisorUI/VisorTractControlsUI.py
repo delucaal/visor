@@ -13,27 +13,31 @@ from VisorUtils.VisorObjects import ROIObject, ImageObject, TractographyObject
 from VisorUI.VisorVolumeControlsUI import VisorVolumeControlsUI
 
 class VisorTractControlsUI(object):
+    shared = None
+
     def __init__(self, parent):
         self.mainapp = parent
-        
+        VisorTractControlsUI.shared = self
+
         self.loadSingleTractButton = parent.findChild(QtWidgets.QPushButton,'loadSingleTract')
         self.loadAllTractsButton = parent.findChild(QtWidgets.QPushButton,'loadAllTracts')
         self.deleteAllTractsButton = parent.findChild(QtWidgets.QPushButton,'deleteAllTracts')
         self.deleteOneTractButton = parent.findChild(QtWidgets.QPushButton,'deleteOneTractButton')
-        self.toggleClipButton = parent.findChild(QtWidgets.QPushButton,'toggleClipButton')
+        self.tractToggleClipButton = parent.findChild(QtWidgets.QPushButton, 'toggleClipButton')
 
-        self.tractsSubsamplingSlider = parent.findChild(QtWidgets.QSlider,'subsamplingSlider')        
+        self.tractPropertiesContainer = parent.findChild(QtWidgets.QTabWidget,'tractPropertiesContainer')
+        self.tractsSubsamplingSlider = parent.findChild(QtWidgets.QSlider,'subsamplingSlider')
         self.tractColRedSlider = parent.findChild(QtWidgets.QSlider,'tractColRedSlider')
         self.tractColGreenSlider = parent.findChild(QtWidgets.QSlider,'tractColGreenSlider')
         self.tractColBlueSlider = parent.findChild(QtWidgets.QSlider,'tractColBlueSlider')
         self.tractColAlphaSlider = parent.findChild(QtWidgets.QSlider,'tractColAlphaSlider')
         self.tractThickSlider = parent.findChild(QtWidgets.QSlider,'tractThickSlider')
         self.tractColDECButton = parent.findChild(QtWidgets.QPushButton,'tractColDECButton')
-        self.hideShowAllTractsButton = parent.findChild(QtWidgets.QPushButton,'hideShowAllTractsButton')        
-        self.clipThickSlider = parent.findChild(QtWidgets.QSlider,'clipThickSlider')
-        self.zClipSlider = parent.findChild(QtWidgets.QSlider,'zClipSlider')
-        self.yClipSlider = parent.findChild(QtWidgets.QSlider,'yClipSlider')
-        self.xClipSlider = parent.findChild(QtWidgets.QSlider,'xClipSlider')
+        self.tractHideShowAllButton = parent.findChild(QtWidgets.QPushButton, 'hideShowAllTractsButton')
+        self.tractClipThickSlider = parent.findChild(QtWidgets.QSlider, 'clipThickSlider')
+        self.tractZClipSlider = parent.findChild(QtWidgets.QSlider, 'zClipSlider')
+        self.tractYClipSlider = parent.findChild(QtWidgets.QSlider, 'yClipSlider')
+        self.tractXClipSlider = parent.findChild(QtWidgets.QSlider, 'xClipSlider')
         
         self.tractsListWidget = parent.findChild(QtWidgets.QListWidget,'tractsList')
         
@@ -44,18 +48,18 @@ class VisorTractControlsUI(object):
         self.deleteAllTractsButton.clicked.connect(self._delete_all_tracts)
         self.deleteOneTractButton.clicked.connect(self._delete_one_tract)
         self.tractColDECButton.clicked.connect(self._tract_color_dec)
-        self.hideShowAllTractsButton.clicked.connect(self._hide_show_all_tracts_button)
-        self.toggleClipButton.clicked.connect(self._clip_toggle_button)
+        self.tractHideShowAllButton.clicked.connect(self._hide_show_all_tracts_button)
+        self.tractToggleClipButton.clicked.connect(self._clip_toggle_button)
         
         self.tractColRedSlider.valueChanged.connect(self._tract_color_slider_changed)
         self.tractColGreenSlider.valueChanged.connect(self._tract_color_slider_changed)
         self.tractColBlueSlider.valueChanged.connect(self._tract_color_slider_changed)
         self.tractColAlphaSlider.valueChanged.connect(self._tract_thick_slider_changed)
         self.tractThickSlider.valueChanged.connect(self._tract_thick_slider_changed)
-        self.clipThickSlider.valueChanged.connect(self._clip_thickness_slider_moved)
-        self.zClipSlider.valueChanged.connect(self._z_clip_slider_moved)
-        self.yClipSlider.valueChanged.connect(self._y_clip_slider_moved)
-        self.xClipSlider.valueChanged.connect(self._x_clip_slider_moved)
+        self.tractClipThickSlider.valueChanged.connect(self._clip_thickness_slider_moved)
+        self.tractZClipSlider.valueChanged.connect(self._z_clip_slider_moved)
+        self.tractYClipSlider.valueChanged.connect(self._y_clip_slider_moved)
+        self.tractXClipSlider.valueChanged.connect(self._x_clip_slider_moved)
 
         self.tractsListWidget.itemClicked.connect(self._track_clicked)
         
@@ -105,6 +109,7 @@ class VisorTractControlsUI(object):
             affine = np.eye(4)
         else:
             affine = ObjectsManager.images_list[current_image].affine
+        #affine = np.eye(4)
         if('.trk' in filename or '.vtk' in filename):
             if(current_image < len(ObjectsManager.images_list)):
                 tractography = TractographyObject(filename,colorby,affine=affine,size4centering=ObjectsManager.images_list[current_image].data.shape)
@@ -116,7 +121,8 @@ class VisorTractControlsUI(object):
 
         ObjectsManager.AddTractographyObject(tractography)
         
-        self.mainapp.scene.AddActor(tractography.actor)
+        #self.mainapp.scene.AddActor(tractography.actor)
+        tractography.AddActorToScene(self.mainapp.scene)
         if(len(ObjectsManager.tracts_list) == 1):
             self.mainapp.scene.ResetCamera()
         self.mainapp.scene.ResetCameraClippingRange()
@@ -125,6 +131,7 @@ class VisorTractControlsUI(object):
         filename = filename.split('/')       
                             
         self.tractsListWidget.addItem(filename[-1])
+        self.tractsListWidget.setCurrentRow(len(ObjectsManager.tracts_list)-1)
         self.mainapp.ROIsTreeWidget.addTopLevelItem(QtWidgets.QTreeWidgetItem([filename[-1]]))
 
         self.mainapp.iren.Render()
@@ -164,8 +171,9 @@ class VisorTractControlsUI(object):
             
     def _delete_all_tracts(self, _button):
         print('delete tracts')
-        for actor in ObjectsManager.tracts_list:
-            self.mainapp.scene.RemoveActor(actor.actor)
+        for tract in ObjectsManager.tracts_list:
+            #self.mainapp.scene.RemoveActor(tract.actor)
+            tract.RemoveActorFromScene()
             
         ObjectsManager.RemoveTractographyObjects()
         self.tractsListWidget.clear()
@@ -181,7 +189,8 @@ class VisorTractControlsUI(object):
             tracts_2_delete.append(row)
         for zin in range(len(tracts_2_delete)-1,-1,-1):
             self.tractsListWidget.takeItem(tracts_2_delete[zin])
-            self.mainapp.scene.RemoveActor(ObjectsManager.tracts_list[zin].actor)
+            #self.mainapp.scene.RemoveActor(ObjectsManager.tracts_list[zin].actor)
+            ObjectsManager.tracts_list[zin].RemoveActorFromScene()
             ObjectsManager.RemoveTractographyObject(zin)
             
         self.mainapp.iren.Render()
@@ -206,27 +215,27 @@ class VisorTractControlsUI(object):
         self.mainapp.iren.Render()
         
     def _clip_thickness_slider_moved(self,_item):
-        print('_clip_thickness_slider_moved ' + str(self.clipThickSlider.value()))
+        print('_clip_thickness_slider_moved ' + str(self.tractClipThickSlider.value()))
         for tract in ObjectsManager.tracts_list:
-            tract.ClipTractsByCoordinatesWithShaders(current_slice_thickness=self.clipThickSlider.value()/1e2)
+            tract.ClipTractsByCoordinatesWithShaders(current_slice_thickness=self.tractClipThickSlider.value() / 1e2)
         self.mainapp.iren.Render()
         
     def _z_clip_slider_moved(self,_item):
-        print('_z_clip_slider_moved ' + str(self.zClipSlider.value()))
+        print('_z_clip_slider_moved ' + str(self.tractZClipSlider.value()))
         for tract in ObjectsManager.tracts_list:
-            tract.ClipTractsByCoordinatesWithShaders(current_slice_pos=self.zClipSlider.value()/1e2, current_axis=2, current_slice_thickness=self.clipThickSlider.value()/1e2)
+            tract.ClipTractsByCoordinatesWithShaders(current_slice_pos=self.tractZClipSlider.value() / 1e2, current_axis=2, current_slice_thickness=self.tractClipThickSlider.value() / 1e2)
         self.mainapp.iren.Render()
         
     def _y_clip_slider_moved(self,_item):
-        print('_y_clip_slider_moved ' + str(self.yClipSlider.value()))
+        print('_y_clip_slider_moved ' + str(self.tractYClipSlider.value()))
         for tract in ObjectsManager.tracts_list:
-            tract.ClipTractsByCoordinatesWithShaders(current_slice_pos=self.yClipSlider.value()/1e2, current_axis=1, current_slice_thickness=self.clipThickSlider.value()/1e2)
+            tract.ClipTractsByCoordinatesWithShaders(current_slice_pos=self.tractYClipSlider.value() / 1e2, current_axis=1, current_slice_thickness=self.tractClipThickSlider.value() / 1e2)
         self.mainapp.iren.Render()
         
     def _x_clip_slider_moved(self,_item):
-        print('_x_clip_slider_moved ' + str(self.xClipSlider.value()))
+        print('_x_clip_slider_moved ' + str(self.tractXClipSlider.value()))
         for tract in ObjectsManager.tracts_list:
-            tract.ClipTractsByCoordinatesWithShaders(current_slice_pos=self.xClipSlider.value()/1e2, current_axis=0, current_slice_thickness=self.clipThickSlider.value()/1e2)
+            tract.ClipTractsByCoordinatesWithShaders(current_slice_pos=self.tractXClipSlider.value() / 1e2, current_axis=0, current_slice_thickness=self.tractClipThickSlider.value() / 1e2)
         self.mainapp.iren.Render()
                 
     def _tracts_subsampling_slider_moved(self,_item):

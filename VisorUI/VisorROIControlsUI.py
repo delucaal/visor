@@ -31,7 +31,7 @@ class VisorROIControlsUI(object):
         self.deleteROIButton = parent.findChild(QtWidgets.QPushButton, 'deleteROIButton')
         self.toggleROIButton = parent.findChild(QtWidgets.QPushButton, 'toggleROIButton')
 
-        self.current_roi = 0
+        self.current_roi = -1
 
     def _link_qt_actions(self):
         self.roiListWidget.itemClicked.connect(self._roi_clicked)
@@ -53,6 +53,8 @@ class VisorROIControlsUI(object):
         ObjectsManager.AddROIObject(O)
         ROI_Name = O.Name + ' (Disabled)'
         self.roiListWidget.addItem(ROI_Name)
+        self.current_roi = len(ObjectsManager.rois_list) - 1
+        self.roiListWidget.setCurrentRow(self.current_roi)
         self.ROIsTreeWidget.topLevelItem(0).addChild(QtWidgets.QTreeWidgetItem([O.Name, O.Type]))
         self.mainapp.iren.Render()
 
@@ -74,6 +76,7 @@ class VisorROIControlsUI(object):
         position = [float(self.roiXposSpinbox.value()), position[1], position[2]]
         cR.source.SetCenter(position)
         cR.actor.Modified()
+        self.ApplyROIsToTracts()
         self.mainapp.iren.Render()
 
     def _roi_y_slider_changed(self, _item):
@@ -84,6 +87,7 @@ class VisorROIControlsUI(object):
         position = [position[0], float(self.roiYposSpinbox.value()), position[2]]
         cR.source.SetCenter(position)
         cR.actor.Modified()
+        self.ApplyROIsToTracts()
         self.mainapp.iren.Render()
 
     def _roi_z_slider_changed(self, _item):
@@ -94,6 +98,7 @@ class VisorROIControlsUI(object):
         position = [position[0], position[1], float(self.roiZposSpinbox.value())]
         cR.source.SetCenter(position)
         cR.actor.Modified()
+        self.ApplyROIsToTracts()
         self.mainapp.iren.Render()
 
     def _roi_size_slider_changed(self, _item):
@@ -103,25 +108,32 @@ class VisorROIControlsUI(object):
         size = self.roiSizeSpinbox.value()
         cR.source.SetRadius(size)
         cR.actor.Modified()
+        self.ApplyROIsToTracts()
         self.mainapp.iren.Render()
 
     def _delete_ROI_button(self,_button):
-        if(len(ObjectsManager.rois_list) > 0):
+        if(len(ObjectsManager.rois_list) > 0 and self.current_roi < len(ObjectsManager.rois_list) and self.current_roi >= 0):
             #self.scene.RemoveActor(ObjectsManager.rois_list[self.troiListWidget.currentRow()].actor)
-            ObjectsManager.rois_list[self.roiListWidget.currentRow()].RemoveActorFromScene()
-            ObjectsManager.RemoveROIObject(self.roiListWidget.currentRow())
+            ObjectsManager.rois_list[self.current_roi].RemoveActorFromScene()
+            ObjectsManager.RemoveROIObject(self.current_roi)
+            self.roiListWidget.takeItem(self.current_roi)
+            self.current_roi = -1
+            self.roiListWidget.clearSelection()
         self.ApplyROIsToTracts()
 
     def _toggle_ROI_button(self,_button):
+        if(len(ObjectsManager.rois_list) == 0 or self.roiListWidget.currentRow() < 0):
+            self.ApplyROIsToTracts()
+            return
         ObjectsManager.rois_list[self.roiListWidget.currentRow()].ToggleEnabled()
         if(ObjectsManager.rois_list[self.roiListWidget.currentRow()].enabled):
             # Activate the ROI and add it to the tract
-            self.roisListWidget.currentItem().setText(ObjectsManager.rois_list[self.roiListWidget.currentRow()].Name + ' (Enabled)' )
+            self.roiListWidget.currentItem().setText(ObjectsManager.rois_list[self.roiListWidget.currentRow()].Name + ' (Enabled)' )
             # First remove ROI from unassigned. Then, locate tract in tree top level widgets first, then add this children
             topLevelItem = self.ROIsTreeWidget.topLevelItem(0)
             for j in range(topLevelItem.childCount()):
                 childItem = topLevelItem.child(j)
-                if(childItem.text(0) == ObjectsManager.rois_list[self.roisListWidget.currentRow()].Name):
+                if(childItem.text(0) == ObjectsManager.rois_list[self.roiListWidget.currentRow()].Name):
                     topLevelItem.removeChild(childItem)
                     break
             # Now add it to the right tract top item
@@ -132,7 +144,7 @@ class VisorROIControlsUI(object):
                     break
             ObjectsManager.tracts_list[VisorTractControlsUI.shared.tractsListWidget.currentRow()].AddROI(ObjectsManager.rois_list[self.roiListWidget.currentRow()])
         else:
-            self.roisListWidget.currentItem().setText(ObjectsManager.rois_list[self.roiListWidget.currentRow()].Name + ' (Disabled)' )
+            self.roiListWidget.currentItem().setText(ObjectsManager.rois_list[self.roiListWidget.currentRow()].Name + ' (Disabled)' )
             # Locate tract in tree top level widgets first, then look for this children and remove it
             # Deactivate the ROI and remove it from the tract
             for i in range(self.ROIsTreeWidget.topLevelItemCount()):
@@ -140,7 +152,7 @@ class VisorROIControlsUI(object):
                 if(topLevelItem.text(0) == VisorTractControlsUI.shared.tractsListWidget.currentItem().text()):
                     for j in range(topLevelItem.childCount()):
                         childItem = topLevelItem.child(j)
-                        if(childItem.text(0) == ObjectsManager.rois_list[self.roisListWidget.currentRow()].Name):
+                        if(childItem.text(0) == ObjectsManager.rois_list[self.roiListWidget.currentRow()].Name):
                             topLevelItem.removeChild(childItem)
                             self.ROIsTreeWidget.topLevelItem(0).addChild(childItem) # Unassigned
                             break

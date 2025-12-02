@@ -29,10 +29,11 @@ from VisorUtils.FODActor import visorFODActor
 from VisorUtils.SimpleThreading import MethodInBackground
 from VisorUtils.ObjectsManagement import ObjectsManager
 from VisorUtils.IOManager import VisorIO
-from VisorUtils.VisorObjects import ROIObject, ImageObject, TractographyObject
+from VisorUtils.VisorObjects import ROIObject, ImageObject, TractographyObject, SurfaceObject
 
 from VisorUI.VisorVolumeControlsUI import VisorVolumeControlsUI
 from VisorUI.VisorTractControlsUI import VisorTractControlsUI
+from VisorUI.VisorROIControlsUI import VisorROIControlsUI
 
 class VisorMainAppQt(QtWidgets.QMainWindow):
     window_open = False
@@ -57,51 +58,27 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.renderFrame = self.findChild(QtWidgets.QFrame,'RenderFrame')
         self.loadFODButton = self.findChild(QtWidgets.QPushButton,'loadFODButton')
 
-        self.roisListWidget = self.findChild(QtWidgets.QListWidget,'ROIsListWidget')
-
         self.rightBarWidget = self.findChild(QtWidgets.QWidget,'tabWidget')
-        self.tractPropertiesContainer = self.findChild(QtWidgets.QTabWidget,'tractPropertiesContainer')
 
         self.fodSubsampSlider = self.findChild(QtWidgets.QSlider,'fodSubsampSlider')
-        
-        self.roiListWidget = self.findChild(QtWidgets.QListWidget,'ROIsListWidget')
-        
-        self.Xspinbox = self.findChild(QtWidgets.QSpinBox,'XspinBox')
-        self.Yspinbox = self.findChild(QtWidgets.QSpinBox,'YspinBox')
-        self.Zspinbox = self.findChild(QtWidgets.QSpinBox,'ZspinBox')
-        self.Sspinbox = self.findChild(QtWidgets.QSpinBox,'SspinBox')
-        
-        self.sphereROIButton = self.findChild(QtWidgets.QPushButton,'sphereROIButton')
-        self.deleteROIButton = self.findChild(QtWidgets.QPushButton,'deleteROIButton')
-        self.toggleROIButton = self.findChild(QtWidgets.QPushButton,'toggleROIButton')
-        
+
         self.deleteFODButton = self.findChild(QtWidgets.QPushButton,'deleteFODButton')
         
-        self.ROIsTreeWidget = self.findChild(QtWidgets.QTreeWidget,'ROIsTreeWidget')
         #self.tractPropertiesContainer.setVisible(False)
         
         self.volumeControlsUI = VisorVolumeControlsUI(self)
         self.tractControlsUI = VisorTractControlsUI(self)
+        self.roiControlsUI = VisorROIControlsUI(self)
         
     def _link_qt_actions(self):
         self.loadFODButton.clicked.connect(self._load_FOD_clicked)
         self.deleteFODButton.clicked.connect(self._delete_FOD_button)
-        
-        self.roiListWidget.itemClicked.connect(self._roi_clicked)
-        
-        self.fodSubsampSlider.valueChanged.connect(self._fod_subsamp_slider_moved)
-        
-        self.Xspinbox.valueChanged.connect(self._roi_x_slider_changed)
-        self.Yspinbox.valueChanged.connect(self._roi_y_slider_changed)
-        self.Zspinbox.valueChanged.connect(self._roi_z_slider_changed)
-        self.Sspinbox.valueChanged.connect(self._roi_size_slider_changed)
 
-        self.sphereROIButton.clicked.connect(self._add_sphere_roi)
-        self.deleteROIButton.clicked.connect(self._delete_ROI_button)
-        self.toggleROIButton.clicked.connect(self._toggle_ROI_button)
-        
+        self.fodSubsampSlider.valueChanged.connect(self._fod_subsamp_slider_moved)
+
         self.volumeControlsUI._link_qt_actions()
         self.tractControlsUI._link_qt_actions()
+        self.roiControlsUI._link_qt_actions()
         
     def _setup_ui(self):
         print('_setup_ui')
@@ -110,7 +87,6 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
 
         self.fod_subsamp = 1
 
-        self.current_roi = 0
         self.target_vs = [1,1,1]
         
         self._link_qt_objects()        
@@ -119,6 +95,9 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         #with open("dark_theme.qss", "r") as f:
         #    qss = f.read()
         self.setStyleSheet(qdarkstyle.load_stylesheet())        
+        
+        #os.environ["VTK_GRAPHICS_BACKEND"] = "WEBGPU"
+        #print("Backend:", vtk.vtkRenderWindow().GetClassName())
         
         self.vtkWidget = QVTKRenderWindowInteractor(self.renderFrame)       
         self.vl = Qt.QVBoxLayout()
@@ -155,17 +134,18 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         #self.scene.AddLight(headlight)
 
         # Optional ambient light
-        #ambient_light = vtk.vtkLight()
-        #ambient_light.SetLightTypeToSceneLight()
-        #ambient_light.SetIntensity(0.3)
-        #self.scene.AddLight(ambient_light)       
+        ambient_light = vtk.vtkLight()
+        ambient_light.SetLightTypeToSceneLight()
+        ambient_light.SetIntensity(0.1)
+        self.scene.AddLight(ambient_light)
         
         # Directional light
-        #scene_light = vtk.vtkLight()
-        #scene_light.SetLightTypeToSceneLight()
-        #scene_light.SetPosition(50, 50, 100)
-        #scene_light.SetFocalPoint(0, 0, 0)
-        #self.scene.AddLight(scene_light)         
+        scene_light = vtk.vtkLight()
+        scene_light.SetLightTypeToSceneLight()
+        scene_light.SetPosition(50, 50, 100)
+        scene_light.SetFocalPoint(0, 0, 0)
+        scene_light.SetIntensity(0.25)
+        self.scene.AddLight(scene_light)
         
         #self._add_sphere_roi(0)
         
@@ -215,73 +195,14 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         picker.Pick(x, y, 0, self.scene)
         actor = picker.GetActor()
         if actor:
-            self.ApplyROIsToTracts()
+            self.roiControlsUI.ApplyROIsToTracts()
                 
     def _delete_FOD_button(self,_button):
         if(len(ObjectsManager.fod_list) > 0):
-            self.scene.RemoveActor(ObjectsManager.fod_list[0])            
+            #self.scene.RemoveActor(ObjectsManager.fod_list[0])
+            ObjectsManager.fod_list[0].RemoveActorFromScene()
             ObjectsManager.RemoveFODObject()
-                                    
-    ## ROI related actions
-    def _add_sphere_roi(self,_button):
-        O = ROIObject()
-        O.InitSphereROI(center=[0,0,0],radius=1)
-        self.scene.AddActor(O.actor)
-        ObjectsManager.AddROIObject(O)
-        ROI_Name = O.Name + ' (Disabled)'
-        self.roiListWidget.addItem(ROI_Name)
-        self.ROIsTreeWidget.topLevelItem(0).addChild(QtWidgets.QTreeWidgetItem([O.Name,O.Type]))
-        self.iren.Render()
-        
-    def _roi_clicked(self,_item):
-        cR = self.roiListWidget.currentRow()
-        print('_roi_clicked ' + str(cR))
-        self.current_roi = cR
-        self.Xspinbox.setValue(int(ObjectsManager.rois_list[self.current_roi].source.GetCenter()[0]))
-        self.Yspinbox.setValue(int(ObjectsManager.rois_list[self.current_roi].source.GetCenter()[1]))
-        self.Zspinbox.setValue(int(ObjectsManager.rois_list[self.current_roi].source.GetCenter()[2]))
-        self.Sspinbox.setValue(int(ObjectsManager.rois_list[self.current_roi].source.GetRadius()))
-        ObjectsManager.rois_list[cR].ActorHighlightedProps()
-                
-    def _roi_x_slider_changed(self,_item):
-        # if(self.current_actor != 0):
-        cR = self.roiListWidget.currentRow()
-        cR = ObjectsManager.rois_list[cR]   
-        position = cR.source.GetCenter()
-        position = [float(self.Xspinbox.value()),position[1],position[2]]
-        cR.source.SetCenter(position)
-        cR.actor.Modified()
-        self.iren.Render()
-                          
-    def _roi_y_slider_changed(self,_item):
-        # if(self.current_actor != 0):
-        cR = self.roiListWidget.currentRow()
-        cR = ObjectsManager.rois_list[cR]   
-        position = cR.source.GetCenter()
-        position = [position[0],float(self.Yspinbox.value()),position[2]]
-        cR.source.SetCenter(position)
-        cR.actor.Modified()
-        self.iren.Render()
 
-    def _roi_z_slider_changed(self,_item):
-        # if(self.current_actor != 0):
-        cR = self.roiListWidget.currentRow()
-        cR = ObjectsManager.rois_list[cR]   
-        position = cR.source.GetCenter()
-        position = [position[0],position[1],float(self.Zspinbox.value())]
-        cR.source.SetCenter(position)
-        cR.actor.Modified()
-        self.iren.Render()
-        
-    def _roi_size_slider_changed(self,_item):
-        # if(self.current_actor != 0):
-        cR = self.roiListWidget.currentRow()
-        cR = ObjectsManager.rois_list[cR] 
-        size = self.Sspinbox.value()  
-        cR.source.SetRadius(size)
-        cR.actor.Modified()
-        self.iren.Render()
-                                                                    
     def _fod_subsamp_slider_moved(self,_slider):
         self.fod_subsamp = int(self.fodSubsampSlider.value())
                         
@@ -297,56 +218,6 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
             if(Q == '.nii' or Q == 'i.gz'):
                 self.LoadFODandDisplay(fileName)
                         
-    def _delete_ROI_button(self,_button):
-        if(len(ObjectsManager.rois_list) > 0):
-            self.scene.RemoveActor(ObjectsManager.rois_list[self.troiListWidget.currentRow()].actor)            
-            ObjectsManager.RemoveROIObject(self.troiListWidget.currentRow())
-        self.ApplyROIsToTracts()
-
-    def _toggle_ROI_button(self,_button):
-        ObjectsManager.rois_list[self.roiListWidget.currentRow()].ToggleEnabled()
-        if(ObjectsManager.rois_list[self.roiListWidget.currentRow()].enabled):
-            # Activate the ROI and add it to the tract
-            self.roisListWidget.currentItem().setText(ObjectsManager.rois_list[self.roiListWidget.currentRow()].Name + ' (Enabled)' )                      
-            # First remove ROI from unassigned. Then, locate tract in tree top level widgets first, then add this children
-            topLevelItem = self.ROIsTreeWidget.topLevelItem(0)
-            for j in range(topLevelItem.childCount()):
-                childItem = topLevelItem.child(j)
-                if(childItem.text(0) == ObjectsManager.rois_list[self.roisListWidget.currentRow()].Name):
-                    topLevelItem.removeChild(childItem)
-                    break
-            # Now add it to the right tract top item
-            for i in range(1,self.ROIsTreeWidget.topLevelItemCount()):
-                topLevelItem = self.ROIsTreeWidget.topLevelItem(i)       
-                if(topLevelItem.text(0) == self.tractsListWidget.currentItem().text()):
-                    topLevelItem.addChild(childItem) 
-                    break                                                      
-            ObjectsManager.tracts_list[self.tractsListWidget.currentRow()].AddROI(ObjectsManager.rois_list[self.roiListWidget.currentRow()])
-        else:
-            self.roisListWidget.currentItem().setText(ObjectsManager.rois_list[self.roiListWidget.currentRow()].Name + ' (Disabled)' )
-            # Locate tract in tree top level widgets first, then look for this children and remove it
-            # Deactivate the ROI and remove it from the tract
-            for i in range(self.ROIsTreeWidget.topLevelItemCount()):
-                topLevelItem = self.ROIsTreeWidget.topLevelItem(i)
-                if(topLevelItem.text(0) == self.tractsListWidget.currentItem().text()):
-                    for j in range(topLevelItem.childCount()):
-                        childItem = topLevelItem.child(j)
-                        if(childItem.text(0) == ObjectsManager.rois_list[self.roisListWidget.currentRow()].Name):
-                            topLevelItem.removeChild(childItem)
-                            self.ROIsTreeWidget.topLevelItem(0).addChild(childItem) # Unassigned
-                            break
-            ObjectsManager.tracts_list[self.tractsListWidget.currentRow()].DeleteROIByName(ObjectsManager.rois_list[self.roiListWidget.currentRow()].Name)
-        self.ApplyROIsToTracts()
-
-    def ApplyROIsToTracts(self):
-        for tract in ObjectsManager.tracts_list:
-            tract.color_tracts_by_roi_intersection_optimized(
-                rois_list = None, #ObjectsManager.rois_list,
-                #intersect_color = (1,0,0),
-                alpha_outside = 0.3
-            )
-        self.iren.Render()
-
     def keyboardEvent(self,obj,event):
         key = self.iren.GetKeySym()
         if(key == 'm'):
@@ -363,7 +234,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
 
         elif(key == 'i'):
             print('Intersection')
-            self.ApplyROIsToTracts()
+            self.roiControlsUI.ApplyROIsToTracts()
         
         elif(key == 'd'):
             self.set_view_3d()
@@ -402,11 +273,11 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
             if(index != -1):
                 # It is a ctract
                 print('Found tract in list ' + str(index))
-                self.tractsListWidget.setCurrentRow(index)
+                self.tractControlsUI.tractsListWidget.setCurrentRow(index)
                 self.current_actor_properties = vtk.vtkProperty()
                 self.current_actor_properties.DeepCopy(self.current_actor.GetProperty())
                 ObjectsManager.tracts_list[index].ActorHighlightedProps()
-                self.tractsListWidget.setCurrentRow(index)
+                self.tractControlsUI.tractsListWidget.setCurrentRow(index)
                 self.iren.Render()
                 self._interactor_camera() # Tracts should not be moved
             else:
@@ -414,8 +285,11 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
                 index = ObjectsManager.IndexOfROIObject(NewPickedActor)
                 if(index != -1):
                     print('Found ROI in list ' + str(index))
+                else:
+                    return
+                
                 #self.tractsList.setCurrentRow(index)
-                self.roisListWidget.setCurrentRow(index)
+                self.roiControlsUI.roiListWidget.setCurrentRow(index)
                 for roi in ObjectsManager.rois_list:
                     roi.ActorDefaultProps()
                 ObjectsManager.rois_list[index].ActorHighlightedProps()
@@ -445,6 +319,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         #fA.displayAxialFODs(self.axialSlider.value()) # automatically called from the slider
         
         self.scene.AddActor(fA)
+        #fA.AddActorToScene(self.scene)
         self.iren.Render()
         # self.scene.ResetCamera()
         # self.scene.ResetCameraClippingRange()
@@ -463,6 +338,12 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
                 self.volumeControlsUI.LoadAndDisplayImage(f)
             elif('.mat' in f or '.trk' in f or '.tck' in f or '.vtk' in f):
                 self.tractControlsUI.LoadAndDisplayTract(f)
+            elif('.gii' in f):
+                surface = SurfaceObject()
+                surface.InitializeFromGIFTI(f)
+                ObjectsManager.AddSurfaceObject(surface)
+                #self.scene.AddActor(surface.actor)
+                surface.AddActorToScene(self.scene)
                 
     def get_scene_center(self):
         """Compute the center of the visible actors' bounding box."""
@@ -472,7 +353,6 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         cy = 0.5 * (bounds[2] + bounds[3])
         cz = 0.5 * (bounds[4] + bounds[5])
         return cx, cy, cz
-
 
     def set_view_axial(self):
         """Top-down view (Z-axis) — radiological convention."""
@@ -484,7 +364,6 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.scene.ResetCamera()
         self.scene.GetRenderWindow().Render()
 
-
     def set_view_coronal(self):
         """Front view (Y-axis)."""
         cam = self.scene.GetActiveCamera()
@@ -495,7 +374,6 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         self.scene.ResetCamera()
         self.scene.GetRenderWindow().Render()
 
-
     def set_view_sagittal(self):
         """Side view (X-axis)."""
         cam = self.scene.GetActiveCamera()
@@ -505,7 +383,6 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         cam.SetViewUp(0, 0, 1)
         self.scene.ResetCamera()
         self.scene.GetRenderWindow().Render()
-
 
     def set_view_3d(self):
         """Oblique 3D perspective view."""

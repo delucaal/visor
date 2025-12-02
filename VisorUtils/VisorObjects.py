@@ -15,7 +15,51 @@ from vtk.util.numpy_support import vtk_to_numpy
 from fury import actor,colormap as fury_colormap
 from concurrent.futures import ThreadPoolExecutor
 
-class ROIObject(object):
+class VisorObject(object):
+    def __init__(self):
+        self.scene = None
+        self.actor = None
+
+    def AddActorToScene(self,scene):
+        self.scene = scene
+        if(self.scene is not None and self.actor is not None):
+            scene.AddActor(self.actor)
+
+    def RemoveActorFromScene(self):
+        if(self.scene is not None):
+            self.scene.RemoveActor(self.actor)
+            self.scene = None
+
+class SurfaceObject(VisorObject):
+    TotalObjects = 0
+    
+    def __init__(self):
+        self.ReferenceFile = ''
+        self.Name = 'Surface' + str(SurfaceObject.TotalObjects)
+        self.actor = 0
+        self.mapper = 0
+        self.data = 0
+        
+        SurfaceObject.TotalObjects += 1
+        
+    def InitializeFromGIFTI(self,filename):
+        self.ReferenceFile = filename
+        self.data = VisorIO.load_gifti_as_vtk_polydata(filename)
+        self.mapper = vtk.vtkPolyDataMapper()
+        self.mapper.SetInputData(self.data)
+
+        self.actor = vtk.vtkActor()
+        self.actor.SetMapper(self.mapper)
+
+        self.actor.GetProperty().SetInterpolationToPhong()
+        self.actor.GetProperty().SetAmbient(0.2)
+        self.actor.GetProperty().SetDiffuse(0.85)
+        self.actor.GetProperty().SetSpecular(0.1)
+        self.actor.GetProperty().SetSpecularPower(10)
+
+        #mapper = vtk.vtkOpenGLPolyDataMapper.SafeDownCast(actor.GetMapper())
+
+class ROIObject(VisorObject):
     TotalObjects = 0
     
     def __init__(self):
@@ -85,7 +129,7 @@ class ROIgroupsObject(object):
         self.rois_list = []
         self.target_tracts = []
                  
-class ImageObject(object):
+class ImageObject(VisorObject):
         
     def __init__(self, filename, shortName, target_vs=0, minVal=0, maxVal=255, alpha=255, colormap='gray'):
         data = nib.load(filename)
@@ -171,11 +215,11 @@ class ImageObject(object):
         self.lut = lut
 
 
-class TractographyObject(object):
+class TractographyObject(VisorObject):
 
     def __init__(self,filename,colorby='random',max_tracts=1e10,affine=None,size4centering=None):    
         if('.mat' in filename):
-            Tracts = VisorIO.LoadMATTractography(filename, max_tracts=max_tracts,affine=affine)
+            Tracts = VisorIO.LoadMATTractography(filename, max_tracts=max_tracts,affine=affine,std_reorient=False)
         elif('.trk' in filename or '.tck' in filename):
             Tracts = VisorIO.LoadTRKTractography(filename, max_tracts=max_tracts,affine=affine,size4centering=size4centering)
         elif('.vtk' in filename):
