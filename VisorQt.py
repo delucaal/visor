@@ -211,7 +211,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         print('Load FOD clicked')
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","All Files (*);Python Files (*.py)", options=options)
+        fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","All Files (*)", options=options)
         if fileName:
             print(fileName)
             Q = fileName[len(fileName)-4:len(fileName)]

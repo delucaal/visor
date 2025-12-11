@@ -83,7 +83,7 @@ class VisorVolumeControlsUI(object):
             print(fileName)
             Q = fileName[len(fileName)-4:len(fileName)]
             if(Q == '.nii' or Q == '.nii.gz'):
-                self.mainapp.LoadAndDisplayImage(fileName)        
+                self.LoadAndDisplayImage(fileName)        
                 
     def _unload_volume_clicked(self,_item):
         cR = self.volumesListWidget.currentRow()
@@ -125,10 +125,10 @@ class VisorVolumeControlsUI(object):
         self.UpdateImageSliceAxial(z)
             
         if(len(ObjectsManager.fod_list) > 0):
-            args=(z,self.fod_subsamp)
+            args=(z,self.mainapp.fod_subsamp)
             # self.fod_list[0].displayAxialFODs(z,subsamp_fac=8)
             # MethodInBackground(ObjectsManager.fod_list[0].displayAxialFODs,args)
-            ObjectsManager.fod_list[0].displayAxialFODs(z,self.fod_subsamp)
+            ObjectsManager.fod_list[0].displayAxialFODs(z,self.mainapp.fod_subsamp)
             ObjectsManager.fod_list[0].Modified()
             
         self.axialEdit.setText(str(self.axialSlider.value()))   
