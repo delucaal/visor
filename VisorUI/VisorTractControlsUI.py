@@ -38,7 +38,13 @@ class VisorTractControlsUI(object):
         self.tractZClipSlider = parent.findChild(QtWidgets.QSlider, 'zClipSlider')
         self.tractYClipSlider = parent.findChild(QtWidgets.QSlider, 'yClipSlider')
         self.tractXClipSlider = parent.findChild(QtWidgets.QSlider, 'xClipSlider')
-        
+        self.tractZClipSlider.setMinimum(-1000)
+        self.tractZClipSlider.setMaximum(1000)
+        self.tractYClipSlider.setMinimum(-1000)
+        self.tractYClipSlider.setMaximum(1000)
+        self.tractXClipSlider.setMinimum(-1000)
+        self.tractXClipSlider.setMaximum(1000)
+
         self.tractsListWidget = parent.findChild(QtWidgets.QListWidget,'tractsList')
         
         

@@ -30,14 +30,13 @@ class VisorIO(object):
         Tracts = MatFile['Tracts']#np.asarray(MatFile['Tracts']);
         TractMask = MatFile['TractMask']
         VD = MatFile['VDims']        
-        #Shift = affine[0:3,-1]
         Shift = affine[0:3,-1]
         # for i in range(0,min(Tracts.shape[0],max_tracts)):
         if(std_reorient):
             for i in range(0,min(len(Tracts),max_tracts)):
                 P = Tracts[i]
-                # P[:,0] = TractMask.shape[0]*VD[1]-P[:,0]
-                # P[:,1] = TractMask.shape[1]*VD[0]-P[:,1]
+                #P[:,0] = TractMask.shape[0]*VD[1]-P[:,0]
+                #P[:,1] = TractMask.shape[1]*VD[0]-P[:,1]
                 P[:,0] = -P[:,0]+TractMask.shape[0]*VD[1] + Shift[1]
                 P[:,1] = -P[:,1]+TractMask.shape[1]*VD[0] + Shift[0]
                 P[:,2] = Shift[2]+P[:,2]
@@ -46,7 +45,7 @@ class VisorIO(object):
         return Tracts
     
     @staticmethod
-    def LoadTRKTractography(filename,max_tracts=1e10,affine=None,size4centering=None,downsampling_factor=1,max_tracts_load=10e3):
+    def LoadTRKTractography(filename,max_tracts=1e10,affine=None,size4centering=None,downsampling_factor=1,max_tracts_load=1e6):
         Tractogram = load_tractogram(filename,filename)
         
         Tracts = Tractogram.streamlines[0:int(downsampling_factor*max_tracts_load):downsampling_factor,:]

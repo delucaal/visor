@@ -219,7 +219,7 @@ class TractographyObject(VisorObject):
 
     def __init__(self,filename,colorby='random',max_tracts=1e10,affine=None,size4centering=None):    
         if('.mat' in filename):
-            Tracts = VisorIO.LoadMATTractography(filename, max_tracts=max_tracts,affine=affine,std_reorient=False)
+            Tracts = VisorIO.LoadMATTractography(filename, max_tracts=max_tracts,affine=affine,std_reorient=True)
         elif('.trk' in filename or '.tck' in filename):
             Tracts = VisorIO.LoadTRKTractography(filename, max_tracts=max_tracts,affine=affine,size4centering=size4centering)
         elif('.vtk' in filename):
@@ -263,7 +263,7 @@ class TractographyObject(VisorObject):
         self.clipping_position = 1.0
         self.clipping_thickness = 0.1
         
-    def PreparePolydataGivenPointsAndLines_fast(self,Tracts, color_mode=0, my_color=[255,255,255], max_tracts=1e5):
+    def PreparePolydataGivenPointsAndLines_fast(self,Tracts, color_mode=0, my_color=[255,255,255], max_tracts=1e6):
         n_tracts = min(len(Tracts), int(max_tracts))
 
         # total points
@@ -343,6 +343,7 @@ class TractographyObject(VisorObject):
         #coords.SetArray(vtk.util.numpy_support.numpy_to_vtk(points_np, deep=True), total_points * 3, 1)
         
         # Build vtk color array properly
+        colors_np = colors_np[:,[1,0,2,3]]  # swap back to original RGB order if needed
         vtk_colors = vtk.util.numpy_support.numpy_to_vtk(colors_np, deep=True, array_type=vtk.VTK_UNSIGNED_CHAR)
         vtk_colors.SetNumberOfComponents(4)
         vtk_colors.SetName("Colors")
@@ -671,15 +672,15 @@ class TractographyObject(VisorObject):
         
     def SetColorSingle(self,red=255,green=255,blue=255):
         mapper = self.actor.GetMapper()
-        poly = mapper.GetInputDataObject(0,0).GetCellData()
+        poly = mapper.GetInputDataObject(0,0).GetPointData()
         old_colors = poly.GetScalars()
         
         Colors = vtk.vtkUnsignedCharArray()
-        Colors.SetNumberOfComponents(3)
+        Colors.SetNumberOfComponents(4)
         Colors.SetName("Colors")
     
         for i in range(0,old_colors.GetNumberOfTuples()):
-            Colors.InsertNextTuple3(red,green,blue)
+            Colors.InsertNextTuple4(red,green,blue,255)
         
         poly.SetScalars(Colors)        
         

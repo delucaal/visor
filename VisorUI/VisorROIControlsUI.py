@@ -69,6 +69,8 @@ class VisorROIControlsUI(object):
         ObjectsManager.rois_list[cR].ActorHighlightedProps()
 
     def _roi_x_slider_changed(self, _item):
+        if(self.roiListWidget.currentRow() < 0):
+            return
         # if(self.current_actor != 0):
         cR = self.roiListWidget.currentRow()
         cR = ObjectsManager.rois_list[cR]
@@ -80,6 +82,8 @@ class VisorROIControlsUI(object):
         self.mainapp.iren.Render()
 
     def _roi_y_slider_changed(self, _item):
+        if(self.roiListWidget.currentRow() < 0):
+            return
         # if(self.current_actor != 0):
         cR = self.roiListWidget.currentRow()
         cR = ObjectsManager.rois_list[cR]
@@ -91,6 +95,8 @@ class VisorROIControlsUI(object):
         self.mainapp.iren.Render()
 
     def _roi_z_slider_changed(self, _item):
+        if(self.roiListWidget.currentRow() < 0):
+            return
         # if(self.current_actor != 0):
         cR = self.roiListWidget.currentRow()
         cR = ObjectsManager.rois_list[cR]
@@ -102,6 +108,8 @@ class VisorROIControlsUI(object):
         self.mainapp.iren.Render()
 
     def _roi_size_slider_changed(self, _item):
+        if(self.roiListWidget.currentRow() < 0):
+            return
         # if(self.current_actor != 0):
         cR = self.roiListWidget.currentRow()
         cR = ObjectsManager.rois_list[cR]

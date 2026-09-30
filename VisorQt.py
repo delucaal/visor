@@ -202,9 +202,11 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
             #self.scene.RemoveActor(ObjectsManager.fod_list[0])
             ObjectsManager.fod_list[0].RemoveActorFromScene()
             ObjectsManager.RemoveFODObject()
+            VisorVolumeControlsUI.shared._axial_slider_moved(None)
 
     def _fod_subsamp_slider_moved(self,_slider):
         self.fod_subsamp = int(self.fodSubsampSlider.value())
+        VisorVolumeControlsUI.shared._axial_slider_moved(None)
                         
     ## FOD related actions
     def _load_FOD_clicked(self, _button):
@@ -320,6 +322,7 @@ class VisorMainAppQt(QtWidgets.QMainWindow):
         
         self.scene.AddActor(fA)
         #fA.AddActorToScene(self.scene)
+        VisorVolumeControlsUI.shared._axial_slider_moved(None)
         self.iren.Render()
         # self.scene.ResetCamera()
         # self.scene.ResetCameraClippingRange()

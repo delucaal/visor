@@ -226,7 +226,7 @@ class visorFODActor(vtk.vtkActor):
         total_tris = Nfaces * n_glyphs
 
         # compute world z position for the slice (like your original)
-        which_slice_world = which_slice * self.my_vs[2] + self.origin[2]
+        #which_slice_world = which_slice * self.my_vs[2] + self.origin[2]
 
         # affine (full 4x4), fallback to identity
         affine4 = getattr(self, "affine", None)
